@@ -1,0 +1,28 @@
+{
+  "name": "sudoku-game",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Mobile-first Sudoku PWA with Android support",
+  "scripts": {
+    "build": "mkdir -p www && cp index.html app.js favicon.svg icon-*.png manifest.json sw.js www/ 2>/dev/null || true && cp -r core platform platforms www/",
+    "dev": "npm run build && python3 -m http.server 8000 --directory www",
+    "test": "node --test core/**/*.test.js",
+    "android:prepare": "npm run build && npx cap sync android",
+    "android:build": "npm run android:prepare && cd android && ./gradlew assembleDebug",
+    "android:release": "npm run android:prepare && cd android && ./gradlew assembleRelease",
+    "android:open": "npx cap open android"
+  },
+  "keywords": [
+    "sudoku",
+    "puzzle",
+    "game",
+    "pwa"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1"
+  }
+}

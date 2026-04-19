@@ -1,0 +1,12 @@
+{
+  "appId": "com.octile.sudoku",
+  "appName": "Sudoku",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "buildOptions": {
+      "keystorePath": "",
+      "keystoreAlias": ""
+    }
+  }
+}

@@ -1,0 +1,9 @@
+www/
+node_modules/
+.DS_Store
+android/build
+android/app/build
+.gradle
+*.log
+.idea/
+.vscode/

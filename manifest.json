@@ -1,0 +1,19 @@
+{
+  "name": "Sudoku Game",
+  "short_name": "Sudoku",
+  "description": "Classic Sudoku puzzle game with multiple difficulty levels",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#5294e2",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "puzzle"]
+}

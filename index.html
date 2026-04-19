@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#5294e2">
+  <meta name="description" content="Classic Sudoku puzzle game">
+  <title>Sudoku Game</title>
+  <link rel="stylesheet" href="platforms/web-dom/styles.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <header>
+    <h1>Sudoku</h1>
+    <div>
+      <div id="timer">00:00</div>
+      <div id="moves">Moves: 0</div>
+    </div>
+  </header>
+
+  <div id="sudoku-grid"></div>
+
+  <div id="number-pad">
+    <button data-number="1">1</button>
+    <button data-number="2">2</button>
+    <button data-number="3">3</button>
+    <button data-number="4">4</button>
+    <button data-number="5">5</button>
+    <button data-number="6">6</button>
+    <button data-number="7">7</button>
+    <button data-number="8">8</button>
+    <button data-number="9">9</button>
+    <button id="clear-btn">Clear</button>
+  </div>
+
+  <div id="controls">
+    <button id="new-game-btn">New Game</button>
+    <button id="hint-btn">💡 Hint</button>
+    <button id="undo-btn">Undo</button>
+    <button id="redo-btn">Redo</button>
+    <button id="notes-btn">✎ Notes</button>
+  </div>
+
+  <!-- Difficulty Selector Modal -->
+  <div id="difficulty-modal">
+    <div class="modal-content">
+      <h2>Select Difficulty</h2>
+      <div class="difficulty-options">
+        <button class="difficulty-btn" data-difficulty="EASY">
+          <span class="difficulty-name">Easy</span>
+          <span class="difficulty-desc">45 clues</span>
+        </button>
+        <button class="difficulty-btn" data-difficulty="MEDIUM">
+          <span class="difficulty-name">Medium</span>
+          <span class="difficulty-desc">38 clues</span>
+        </button>
+        <button class="difficulty-btn" data-difficulty="HARD">
+          <span class="difficulty-name">Hard</span>
+          <span class="difficulty-desc">32 clues</span>
+        </button>
+      </div>
+      <button id="close-difficulty-modal" class="close-btn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Completion Modal -->
+  <div id="completion-modal">
+    <h2>🎉 Puzzle Completed!</h2>
+    <p>Time: <span class="time">0m 0s</span></p>
+    <p>Moves: <span class="moves">0</span></p>
+    <button onclick="location.reload()">New Puzzle</button>
+  </div>
+
+  <script type="module" src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.log('Service worker registration failed:', err);
+      });
+    }
+  </script>
+</body>
+</html>
