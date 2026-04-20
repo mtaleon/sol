@@ -7,6 +7,21 @@ import { WebInput } from './platforms/web-dom/Input.js';
 import { WebStorage } from './platforms/web-dom/Storage.js';
 import { Generator } from './core/Generator.js';
 
+// Toast notification helper
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+
+  container.appendChild(toast);
+
+  // Remove after animation completes
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
 // Initialize platform
 const eventBus = new EventBus();
 const renderer = new WebRenderer();
@@ -44,6 +59,15 @@ eventBus.on(EVENTS.GAME_COMPLETED, (data) => {
   renderer.showCompletionModal(data);
 });
 
+// Solve events
+eventBus.on('solve:success', () => {
+  showToast('Puzzle solved!', 'success');
+});
+
+eventBus.on('solve:failed', () => {
+  showToast('Could not solve puzzle', 'error');
+});
+
 eventBus.on('input:invalid', () => {
   // Play error sound (Sprint 2)
   console.log('Invalid input: cannot modify fixed cell');
@@ -53,6 +77,11 @@ eventBus.on('input:invalid', () => {
 input.initialize();
 
 input.onCellClick((row, col) => {
+  game.selectCell(row, col);
+});
+
+// Cursor movement
+input.onCursorMove((row, col) => {
   game.selectCell(row, col);
 });
 
@@ -73,6 +102,51 @@ input.onNumberInput((number) => {
 // Long-press to toggle notes mode
 input.onLongPress(() => {
   game.toggleNotesMode();
+});
+
+// Keyboard shortcuts
+input.onNewGame(() => {
+  difficultyModal.classList.add('visible');
+});
+
+input.onSaveGame(() => {
+  game.save();
+  showToast('Game saved!', 'success');
+});
+
+input.onRestart(() => {
+  game.restart();
+  showToast('Game restarted', 'info');
+});
+
+input.onUndo(() => {
+  if (game.undoStack.length === 0) {
+    showToast('Nothing to undo', 'warning');
+  } else {
+    game.undo();
+  }
+});
+
+input.onSolve(() => {
+  game.solve();
+});
+
+input.onHint(() => {
+  if (game.selectedCell === null) {
+    showToast('Select a cell first', 'warning');
+    return;
+  }
+
+  const row = Math.floor(game.selectedCell / 9);
+  const col = game.selectedCell % 9;
+  const cell = game.board.getCell(row, col);
+
+  if (cell.given || cell.value !== 0) {
+    showToast('Cell already filled', 'warning');
+  } else {
+    game.getHint();
+    showToast('Hint applied!', 'info');
+  }
 });
 
 // Difficulty modal

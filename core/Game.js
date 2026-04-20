@@ -22,6 +22,9 @@ export class Game {
     // Clear any previous saved game
     this.clearSave();
 
+    // Store original puzzle for restart capability
+    this.originalPuzzle = [...puzzleArray];
+
     this.board = new Board(puzzleArray);
     this.selectedCell = null;
     this.selectedNumber = null;
@@ -322,6 +325,9 @@ export class Game {
       this.undoStack = [];
       this.redoStack = [];
 
+      // Restore original puzzle for restart capability
+      this.originalPuzzle = puzzleArray;
+
       // Restart timer if game was in progress
       if (this.startTime && !this.board.isComplete()) {
         this._startTimer();
@@ -372,5 +378,55 @@ export class Game {
     if (this.storage) {
       this.storage.remove('sudoku-save');
     }
+  }
+
+  // Restart current puzzle from original state
+  restart() {
+    if (!this.originalPuzzle) return;
+
+    // Clear save before restarting
+    this.clearSave();
+
+    // Restart with original puzzle
+    this.startGame(this.originalPuzzle);
+  }
+
+  // Auto-solve the puzzle using the solver
+  solve() {
+    if (!this.board) return;
+
+    const currentPuzzle = this.board.cells.map(cell => cell.value);
+    const solution = Solver.solve(currentPuzzle);
+
+    if (!solution) {
+      this.eventBus.emit('solve:failed');
+      return;
+    }
+
+    // Apply solution to all non-given cells
+    this.board.cells.forEach((cell, idx) => {
+      if (!cell.given && cell.value !== solution[idx]) {
+        cell.value = solution[idx];
+        cell.source = 'solver';
+        cell.notes.clear();
+      }
+    });
+
+    // Check completion
+    if (this.board.isComplete()) {
+      this._stopTimer();
+      this.eventBus.emit(EVENTS.GAME_COMPLETED, {
+        elapsed: this.elapsed,
+        moves: this.moves
+      });
+    }
+
+    // Clear undo/redo since we're applying multiple changes
+    this.undoStack = [];
+    this.redoStack = [];
+
+    this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId: null, value: null });
+    this.eventBus.emit('solve:success');
+    this.clearSave(); // Don't save auto-solved games
   }
 }
