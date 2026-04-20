@@ -40,9 +40,43 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: Build release APK (on tag)
+      # Signed release builds (requires secrets)
+      - name: Decode Keystore
+        if: startsWith(github.ref, 'refs/tags/') && env.ANDROID_KEYSTORE_B64 != ''
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_B64" | base64 -d > android/app/release.keystore
+
+      - name: Create keystore properties
+        if: startsWith(github.ref, 'refs/tags/') && env.ANDROID_KEYSTORE_PASSWORD != ''
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cat > android/keystore.properties <<EOF
+          storeFile=release.keystore
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build signed AAB (Play Store)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: cd android && ./gradlew bundleRelease
+
+      - name: Build signed APK
         if: startsWith(github.ref, 'refs/tags/')
         run: cd android && ./gradlew assembleRelease
+
+      - name: Upload signed AAB
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-bundle
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 90
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -50,6 +84,15 @@ jobs:
         with:
           files: |
             android/app/build/outputs/apk/debug/app-debug.apk
-            android/app/build/outputs/apk/release/app-release-unsigned.apk
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/bundle/release/app-release.aab
+          body: |
+            ## Android Release
+
+            **Play Store**: Upload `app-release.aab` to Play Console
+            **Sideload**: Install `app-release.apk` directly
+            **Debug**: Development build with debugging enabled
+
+            See [DEPLOY.md](./DEPLOY.md) for full deployment instructions.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

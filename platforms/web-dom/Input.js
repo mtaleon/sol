@@ -5,6 +5,7 @@ export class WebInput extends IInput {
     super();
     this.cellClickCallback = null;
     this.numberInputCallback = null;
+    this.numberSelectCallback = null;
     this.longPressCallback = null;
     this.longPressTimer = null;
     this.longPressTarget = null;
@@ -65,15 +66,15 @@ export class WebInput extends IInput {
     grid.addEventListener('mouseup', handlePressEnd);
     grid.addEventListener('mouseleave', handlePressCancel);
 
-    // Number pad
+    // Number pad - for highlighting only
     document.getElementById('number-pad').addEventListener('click', (e) => {
-      if (e.target.dataset.number && this.numberInputCallback) {
+      if (e.target.dataset.number && this.numberSelectCallback) {
         const number = parseInt(e.target.dataset.number);
-        this.numberInputCallback(number);
+        this.numberSelectCallback(number);
       }
     });
 
-    // Clear button
+    // Clear button - for placing 0 via keyboard
     document.getElementById('clear-btn').addEventListener('click', () => {
       if (this.numberInputCallback) {
         this.numberInputCallback(0);
@@ -98,6 +99,10 @@ export class WebInput extends IInput {
     this.numberInputCallback = callback;
   }
 
+  onNumberSelect(callback) {
+    this.numberSelectCallback = callback;
+  }
+
   onLongPress(callback) {
     this.longPressCallback = callback;
   }
@@ -105,6 +110,7 @@ export class WebInput extends IInput {
   cleanup() {
     this.cellClickCallback = null;
     this.numberInputCallback = null;
+    this.numberSelectCallback = null;
     this.longPressCallback = null;
     if (this.longPressTimer) {
       clearTimeout(this.longPressTimer);

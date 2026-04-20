@@ -3,14 +3,17 @@
   --cell-size: calc((var(--grid-size) - 32px) / 9);
   --gap: 2px;
   --box-gap: 4px;
+  --box-border: 3px;
   --color-bg: #ffffff;
   --color-grid: #344861;
-  --color-cell-fixed: #e8f0fe;
+  --color-cell-fixed: #f5f8fa;
   --color-cell-editable: #ffffff;
-  --color-highlight-strong: #5294e2;
-  --color-highlight-medium: rgba(82, 148, 226, 0.3);
-  --color-highlight-light: rgba(82, 148, 226, 0.1);
-  --color-conflict: rgba(255, 0, 0, 0.3);
+  --color-highlight-strong: #344861;
+  --color-highlight-region: transparent;
+  --color-highlight-same: transparent;
+  --color-conflict: rgba(220, 53, 69, 0.12);
+  --color-conflict-border: #dc3545;
+  --color-same-number-ring: cyan;
 }
 
 * {
@@ -78,14 +81,25 @@ h1 {
   color: #000;
 }
 
+/* Box separators - thicker borders after columns 3 and 6, rows 3 and 6 */
+.cell[data-col="2"],
+.cell[data-col="5"] {
+  border-right: var(--box-border) solid var(--color-grid);
+}
+
+.cell[data-row="2"],
+.cell[data-row="5"] {
+  border-bottom: var(--box-border) solid var(--color-grid);
+}
+
 /* Multi-layer highlighting - z-index matters! */
 .cell.region {
-  background-color: var(--color-highlight-light);
-  z-index: 1;
+  /* Completely empty - should do nothing */
 }
 
 .cell.same-number {
-  background-color: var(--color-highlight-medium);
+  /* Only subtle ring for same numbers */
+  box-shadow: inset 0 0 0 2px var(--color-same-number-ring);
   z-index: 2;
 }
 
@@ -97,7 +111,8 @@ h1 {
 
 .cell.conflict {
   background-color: var(--color-conflict);
-  border-color: red;
+  border-color: var(--color-conflict-border);
+  border-width: 2px;
   z-index: 4;
 }
 
@@ -141,8 +156,8 @@ h1 {
 
 #number-pad {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 8px;
   width: var(--grid-size);
   margin-bottom: 20px;
 }
@@ -159,6 +174,14 @@ h1 {
 
 #number-pad button:active {
   transform: scale(0.95);
+}
+
+#clear-btn {
+  background: #fff0f0;
+  border-color: #ffcccc;
+  color: #cc0000;
+  font-size: 1.5rem;
+  font-weight: bold;
 }
 
 #controls {
@@ -320,6 +343,11 @@ body.notes-mode {
   }
 
   #number-pad {
-    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+
+  #number-pad button {
+    font-size: 1rem;
+    height: 44px;
   }
 }

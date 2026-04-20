@@ -4,16 +4,18 @@ import { DEMO_PUZZLE, EVENTS } from './core/constants.js';
 import { Platform } from './platform/Platform.js';
 import { WebRenderer } from './platforms/web-dom/Renderer.js';
 import { WebInput } from './platforms/web-dom/Input.js';
+import { WebStorage } from './platforms/web-dom/Storage.js';
 import { Generator } from './core/Generator.js';
 
 // Initialize platform
 const eventBus = new EventBus();
 const renderer = new WebRenderer();
 const input = new WebInput();
+const storage = new WebStorage();
 const platform = new Platform(renderer, input);
 
 // Initialize game
-const game = new Game(eventBus, null);
+const game = new Game(eventBus, storage);
 
 // Wire events
 eventBus.on(EVENTS.GAME_STARTED, ({ cells }) => {
@@ -54,13 +56,17 @@ input.onCellClick((row, col) => {
   game.selectCell(row, col);
 });
 
+// Number pad buttons - only highlight, don't place
+input.onNumberSelect((number) => {
+  game.selectNumber(number);
+});
+
+// Keyboard input - place numbers in selected cell
 input.onNumberInput((number) => {
   if (game.selectedCell !== null) {
     const row = Math.floor(game.selectedCell / 9);
     const col = game.selectedCell % 9;
     game.setCell(row, col, number);
-  } else {
-    game.selectNumber(number);
   }
 });
 
@@ -123,8 +129,10 @@ setInterval(() => {
   }
 }, 1000);
 
-// Start initial game with demo puzzle
-game.startGame(DEMO_PUZZLE);
+// Start initial game - load saved game or start demo puzzle
+if (!game.loadSavedGame()) {
+  game.startGame(DEMO_PUZZLE);
+}
 
 // Debug access
 window.game = game;

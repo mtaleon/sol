@@ -7,3 +7,9 @@ android/app/build
 *.log
 .idea/
 .vscode/
+
+# Android Signing (NEVER commit!)
+*.keystore
+*.jks
+android/keystore.properties
+android/app/release.keystore

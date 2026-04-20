@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sudoku-v1';
+const CACHE_NAME = 'sudoku-v5-final';
 
 const STATIC_ASSETS = [
   './',
@@ -14,9 +14,11 @@ const STATIC_ASSETS = [
   'core/Generator.js',
   'platform/IRenderer.js',
   'platform/IInput.js',
+  'platform/IStorage.js',
   'platform/Platform.js',
   'platforms/web-dom/Renderer.js',
   'platforms/web-dom/Input.js',
+  'platforms/web-dom/Storage.js',
   'platforms/web-dom/styles.css'
 ];
 
