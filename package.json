@@ -6,6 +6,7 @@
   "scripts": {
     "build": "mkdir -p www && cp index.html app.js favicon.svg icon-*.png manifest.json sw.js www/ 2>/dev/null || true && cp -r core platform platforms www/",
     "dev": "npm run build && python3 -m http.server 8000 --directory www",
+    "play": "node platforms/console/index.js",
     "test": "node --test core/**/*.test.js",
     "android:prepare": "npm run build && npx cap sync android",
     "android:build": "npm run android:prepare && cd android && ./gradlew assembleDebug",
