@@ -5,23 +5,23 @@ export class ConsoleRenderer {
     this.cursorCol = 0;
   }
 
-  // Box-drawing characters for prettier borders
+  // Simple ASCII box-drawing characters (clearer and more compatible)
   BOX = {
-    TL: '╔',      // top-left
-    TR: '╗',      // top-right
-    BL: '╚',      // bottom-left
-    BR: '╝',      // bottom-right
-    H: '═',       // horizontal
-    V: '║',       // vertical
-    VL: '╠',      // vertical-left
-    VR: '╣',      // vertical-right
-    HT: '╦',      // horizontal-top
-    HB: '╩',      // horizontal-bottom
-    CROSS: '╬',   // cross
+    TL: '+',      // top-left
+    TR: '+',      // top-right
+    BL: '+',      // bottom-left
+    BR: '+',      // bottom-right
+    H: '-',       // horizontal
+    V: '|',       // vertical
+    VL: '+',      // vertical-left
+    VR: '+',      // vertical-right
+    HT: '+',      // horizontal-top
+    HB: '+',      // horizontal-bottom
+    CROSS: '+',   // cross
     // Thin lines for cell separators
-    THIN_H: '─',
-    THIN_V: '│',
-    THIN_CROSS: '┼'
+    THIN_H: '-',
+    THIN_V: '|',
+    THIN_CROSS: '+'
   };
 
   // ANSI color codes
@@ -54,17 +54,14 @@ export class ConsoleRenderer {
     this.cursorRow = cursorRow;
     this.cursorCol = cursorCol;
 
-    const { BOX } = this;
     const lines = [];
 
     // Top border
-    lines.push(
-      `${BOX.TL}${BOX.H.repeat(7)}${BOX.HT}${BOX.H.repeat(7)}${BOX.HT}${BOX.H.repeat(7)}${BOX.TR}`
-    );
+    lines.push('+-------+-------+-------+');
 
     // Render each row
     for (let row = 0; row < 9; row++) {
-      let line = BOX.V;
+      let line = '|';
 
       for (let col = 0; col < 9; col++) {
         const cellId = row * 9 + col;
@@ -89,39 +86,24 @@ export class ConsoleRenderer {
           cellText = this._styleCell(cellText, 'normal', false);
         }
 
-        line += ' ' + cellText + ' ';
+        line += ' ' + cellText;
 
-        // Add vertical separator
-        if (col === 2 || col === 5) {
-          line += BOX.V;
-        } else if (col < 8) {
-          line += BOX.THIN_V;
+        // Add separator after every 3rd column
+        if ((col + 1) % 3 === 0) {
+          line += ' |';
         }
       }
 
-      line += BOX.V;
       lines.push(line);
 
-      // Add horizontal separator
-      if (row < 8) {
-        if (row === 2 || row === 5) {
-          // Thick separator for 3x3 boxes
-          lines.push(
-            `${BOX.VL}${BOX.H.repeat(7)}${BOX.CROSS}${BOX.H.repeat(7)}${BOX.CROSS}${BOX.H.repeat(7)}${BOX.VR}`
-          );
-        } else {
-          // Thin separator for rows within boxes
-          lines.push(
-            `${BOX.V}${BOX.THIN_H.repeat(3)}${BOX.THIN_CROSS}${BOX.THIN_H.repeat(3)}${BOX.THIN_CROSS}${BOX.THIN_H.repeat(3)}${BOX.V}${BOX.THIN_H.repeat(3)}${BOX.THIN_CROSS}${BOX.THIN_H.repeat(3)}${BOX.THIN_CROSS}${BOX.THIN_H.repeat(3)}${BOX.V}${BOX.THIN_H.repeat(3)}${BOX.THIN_CROSS}${BOX.THIN_H.repeat(3)}${BOX.THIN_CROSS}${BOX.THIN_H.repeat(3)}${BOX.V}`
-          );
-        }
+      // Add horizontal separator after every 3rd row
+      if ((row + 1) % 3 === 0 && row < 8) {
+        lines.push('+-------+-------+-------+');
       }
     }
 
     // Bottom border
-    lines.push(
-      `${BOX.BL}${BOX.H.repeat(7)}${BOX.HB}${BOX.H.repeat(7)}${BOX.HB}${BOX.H.repeat(7)}${BOX.BR}`
-    );
+    lines.push('+-------+-------+-------+');
 
     return lines;
   }
