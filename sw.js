@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sudoku-v5-final';
+const CACHE_NAME = 'sudoku-v6-octile';
 
 const STATIC_ASSETS = [
   './',

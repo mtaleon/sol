@@ -5,15 +5,20 @@
   --box-gap: 4px;
   --box-border: 3px;
   --color-bg: #ffffff;
-  --color-grid: #344861;
+  --color-grid: #41566f;              /* Don't go deeper - enforces 2x luminance rule */
   --color-cell-fixed: #f5f8fa;
   --color-cell-editable: #ffffff;
   --color-highlight-strong: #344861;
-  --color-highlight-region: transparent;
-  --color-highlight-same: transparent;
-  --color-conflict: rgba(220, 53, 69, 0.12);
+
+  /* Ultra-calm highlight palette - "tint" not "cover" */
+  --color-selected-bg: rgba(121, 134, 184, 0.10);      /* 10% - stable not bright */
+  --color-selected-border: #7986b8;                     /* Soft purple for box-shadow */
+  --color-selected-shadow: rgba(0, 0, 0, 0.05);         /* Structural outline */
+  --color-region-start: rgba(52, 72, 97, 0.015);        /* Radial gradient center */
+  --color-region-end: rgba(52, 72, 97, 0.0);            /* Fade to transparent */
+  --color-same-number: rgba(121, 134, 184, 0.035);      /* 3.5% - 低調不打擾 */
+  --color-conflict: rgba(220, 53, 69, 0.08);            /* Lowered from 0.12 */
   --color-conflict-border: #dc3545;
-  --color-same-number-ring: cyan;
 }
 
 * {
@@ -92,27 +97,42 @@ h1 {
   border-bottom: var(--box-border) solid var(--color-grid);
 }
 
-/* Multi-layer highlighting - z-index matters! */
+/* Multi-layer highlighting - TINT only, never COVER */
+/* Use background-image so background-color from .cell/.cell.fixed remains */
 .cell.region {
-  /* Completely empty - should do nothing */
+  background-color: var(--color-region-start);
+  background-image: radial-gradient(
+    circle at center,
+    transparent,
+    rgba(255,255,255,0.95) 60%
+  );
+  z-index: 1;
 }
 
 .cell.same-number {
-  /* Only subtle ring for same numbers */
-  box-shadow: inset 0 0 0 2px var(--color-same-number-ring);
+  background-color: var(--color-same-number);
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(0,0,0,0.01) 0,
+      rgba(0,0,0,0.01) 1px,
+      transparent 1px,
+      transparent 3px
+    );
   z-index: 2;
 }
 
 .cell.selected {
-  border-color: var(--color-highlight-strong);
-  border-width: 3px;
-  z-index: 3;
+  background-color: var(--color-selected-bg);    /* 10% - stable */
+  box-shadow:
+    inset 0 0 0 2px var(--color-selected-border),
+    0 0 0 1px var(--color-selected-shadow);      /* Structural feel */
+  z-index: 10;
 }
 
 .cell.conflict {
-  background-color: var(--color-conflict);
-  border-color: var(--color-conflict-border);
-  border-width: 2px;
+  background-color: var(--color-conflict);       /* 8% - narrow signal */
+  box-shadow: inset 0 0 0 2px var(--color-conflict-border);
   z-index: 4;
 }
 
@@ -177,11 +197,11 @@ h1 {
 }
 
 #clear-btn {
-  background: #fff0f0;
-  border-color: #ffcccc;
-  color: #cc0000;
-  font-size: 1.5rem;
-  font-weight: bold;
+  background: #f8f8f8;      /* Softer than red background */
+  border-color: #ddd;       /* Softer than red border */
+  color: #666;              /* Softer than red text */
+  font-size: 0.9rem;        /* Smaller since text is longer */
+  font-weight: 600;
 }
 
 #controls {
@@ -199,6 +219,11 @@ h1 {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+#controls button:hover {
+  transform: translateY(-1px);
 }
 
 #controls button:disabled {
@@ -206,9 +231,20 @@ h1 {
   cursor: not-allowed;
 }
 
+/* Notes toggle state - calm green */
 #controls button.active {
-  background: #2ecc71;
-  box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+  background: #5a9a7a;  /* Muted green, not bright #2ecc71 */
+  box-shadow: 0 0 8px rgba(90, 154, 122, 0.3);  /* Softer glow */
+}
+
+/* Reduce weight of New Game button */
+#new-game-btn {
+  background: #95a5a6;  /* Gray, not dark blue */
+  font-size: 0.9rem;    /* Slightly smaller */
+}
+
+#new-game-btn:hover {
+  background: #7f8c8d;
 }
 
 body.notes-mode {
@@ -298,39 +334,148 @@ body.notes-mode {
   background: #bbb;
 }
 
-/* Completion Modal */
-#completion-modal {
-  display: none;
+/* Modal - Octile Universe Style */
+.modal {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-  text-align: center;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.35);  /* Calm overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
-#completion-modal.visible {
-  display: block;
+.modal.show {
+  opacity: 1;
 }
 
-#completion-modal h2 {
-  color: #4CAF50;
-  margin-bottom: 20px;
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  text-align: center;
+  max-width: 90%;
+  animation: modalSlideIn 0.25s ease-out;
 }
 
-#completion-modal button {
-  margin-top: 20px;
-  padding: 12px 24px;
-  background: var(--color-highlight-strong);
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-content h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #2c3e50;  /* Neutral dark blue-gray, NOT green */
+}
+
+.modal-content p {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  color: #7f8c8d;  /* Muted gray */
+  line-height: 1.6;
+}
+
+.modal-content .modal-line {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  color: #7f8c8d;
+  line-height: 1.6;
+}
+
+.modal-content button {
+  background: linear-gradient(135deg, #7986b8 0%, #8b6d9c 100%);
   color: white;
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 0.75rem 2rem;
   font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  min-height: 44px;  /* iOS touch target */
+}
+
+.modal-content button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.modal-content button:active {
+  transform: translateY(0);
+}
+
+/* Octile cross-promotion - minimal, non-intrusive */
+.octile-promo {
+  font-size: 0.85rem;
+  color: #95a5a6;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.octile-promo a {
+  color: #7986b8;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-bottom-color 0.2s;
+  margin-left: 0.25rem;
+}
+
+.octile-promo a:hover {
+  border-bottom-color: #7986b8;
+}
+
+/* Accessibility: Prefers Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .modal-content {
+    animation: none !important;
+  }
+}
+
+/* Mobile bottom sheet (Octile Universe pattern) */
+@media (max-width: 767px) {
+  .modal {
+    align-items: flex-end;  /* Bottom instead of center */
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 55vh;
+    overflow: auto;
+    border-radius: 16px 16px 0 0;  /* Rounded top only */
+    margin: 0;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    animation: slideUpFromBottom 0.28s ease-out;
+  }
+
+  @keyframes slideUpFromBottom {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 }
 
 /* Toast Notifications */

@@ -32,6 +32,12 @@ const platform = new Platform(renderer, input);
 // Initialize game
 const game = new Game(eventBus, storage);
 
+// Set new game handler for modal
+renderer.setNewGameHandler(() => {
+  const difficultyModal = document.getElementById('difficulty-modal');
+  difficultyModal.classList.add('visible');
+});
+
 // Wire events
 eventBus.on(EVENTS.GAME_STARTED, ({ cells }) => {
   renderer.renderBoard(cells);
@@ -111,7 +117,7 @@ input.onNewGame(() => {
 
 input.onSaveGame(() => {
   game.save();
-  showToast('Game saved!', 'success');
+  showToast('Game saved', 'success');
 });
 
 input.onRestart(() => {
@@ -145,7 +151,7 @@ input.onHint(() => {
     showToast('Cell already filled', 'warning');
   } else {
     game.getHint();
-    showToast('Hint applied!', 'info');
+    showToast('Hint applied', 'info');
   }
 });
 
@@ -203,9 +209,10 @@ setInterval(() => {
   }
 }, 1000);
 
-// Start initial game - load saved game or start demo puzzle
+// Start initial game - load saved game or generate new random puzzle
 if (!game.loadSavedGame()) {
-  game.startGame(DEMO_PUZZLE);
+  const initialPuzzle = Generator.generate('MEDIUM');  // Random medium puzzle
+  game.startGame(initialPuzzle);
 }
 
 // Debug access
