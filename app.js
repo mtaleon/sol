@@ -91,9 +91,17 @@ input.onCursorMove((row, col) => {
   game.selectCell(row, col);
 });
 
-// Number pad buttons - only highlight, don't place
+// Number pad buttons - place number if cell selected, otherwise highlight
 input.onNumberSelect((number) => {
-  game.selectNumber(number);
+  if (game.selectedCell !== null) {
+    // Cell selected: place number
+    const row = Math.floor(game.selectedCell / 9);
+    const col = game.selectedCell % 9;
+    game.setCell(row, col, number);
+  } else {
+    // No cell selected: highlight same numbers
+    game.selectNumber(number);
+  }
 });
 
 // Keyboard input - place numbers in selected cell
