@@ -122,4 +122,30 @@ export class Board {
 
     return cells;
   }
+
+  getPeerCells(row, col) {
+    const peers = new Set();
+    const self = row * 9 + col;
+
+    for (let c = 0; c < SIZE; c++) {
+      const id = row * 9 + c;
+      if (id !== self) peers.add(id);
+    }
+
+    for (let r = 0; r < SIZE; r++) {
+      const id = r * 9 + col;
+      if (id !== self) peers.add(id);
+    }
+
+    const boxRow = Math.floor(row / BOX_SIZE) * BOX_SIZE;
+    const boxCol = Math.floor(col / BOX_SIZE) * BOX_SIZE;
+    for (let r = boxRow; r < boxRow + BOX_SIZE; r++) {
+      for (let c = boxCol; c < boxCol + BOX_SIZE; c++) {
+        const id = r * 9 + c;
+        if (id !== self) peers.add(id);
+      }
+    }
+
+    return peers;
+  }
 }

@@ -11,16 +11,24 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
 </head>
 <body>
+  <!-- Layer 1: Header (status) -->
   <header>
-    <h1>Sudoku</h1>
-    <div>
-      <div id="timer">00:00</div>
-      <div id="moves">Moves: 0</div>
+    <div class="header-left">
+      <button id="pause-btn" data-i18n-aria="header.pause" aria-label="Pause">⏸</button>
+    </div>
+    <div class="header-center">
+      <span id="difficulty-label">Medium</span>
+    </div>
+    <div class="header-right">
+      <span id="timer">00:00</span>
+      <span id="mistakes"></span>
     </div>
   </header>
 
+  <!-- Layer 2: Board (focus) -->
   <div id="sudoku-grid"></div>
 
+  <!-- Layer 3: Keypad (input) -->
   <div id="number-pad">
     <button data-number="1">1</button>
     <button data-number="2">2</button>
@@ -31,36 +39,67 @@
     <button data-number="7">7</button>
     <button data-number="8">8</button>
     <button data-number="9">9</button>
-    <button id="clear-btn">Clear</button>
   </div>
 
-  <div id="controls">
-    <button id="new-game-btn">New Game</button>
-    <button id="hint-btn">Hint</button>
-    <button id="undo-btn">Undo</button>
-    <button id="redo-btn">Redo</button>
-    <button id="notes-btn">Notes</button>
+  <!-- Layer 4: Tools (operations) -->
+  <div id="tools">
+    <button id="undo-btn" class="tool-btn" data-i18n-title="tool.undo.title" title="Undo (long-press: Redo)">
+      <span class="tool-icon">↩</span>
+      <span class="tool-label" data-i18n="tool.undo">Undo</span>
+    </button>
+    <button id="notes-btn" class="tool-btn">
+      <span class="tool-icon">✎</span>
+      <span class="tool-label" data-i18n="tool.notes">Notes</span>
+    </button>
+    <button id="hint-btn" class="tool-btn">
+      <span class="tool-icon">💡</span>
+      <span class="tool-label" data-i18n="tool.hint">Hint</span>
+    </button>
+    <button id="clear-btn" class="tool-btn" data-i18n-title="tool.clear.title" title="Clear (long-press: Clear notes)">
+      <span class="tool-icon">✕</span>
+      <span class="tool-label" data-i18n="tool.clear">Clear</span>
+    </button>
+  </div>
+
+  <!-- Pause Overlay -->
+  <div id="pause-overlay">
+    <h2 data-i18n="pause.title">Paused</h2>
+    <div class="pause-actions">
+      <button id="resume-btn" class="primary" data-i18n="pause.resume">Resume</button>
+      <button id="pause-restart-btn" data-i18n="pause.restart">Restart</button>
+      <button id="pause-new-game-btn" data-i18n="pause.newGame">New Game</button>
+      <button id="pause-settings-btn" data-i18n="pause.settings">Settings</button>
+    </div>
   </div>
 
   <!-- Difficulty Selector Modal -->
   <div id="difficulty-modal">
     <div class="modal-content">
-      <h2>Select Difficulty</h2>
+      <h2 data-i18n="difficulty.title">Select Difficulty</h2>
       <div class="difficulty-options">
         <button class="difficulty-btn" data-difficulty="EASY">
-          <span class="difficulty-name">Easy</span>
-          <span class="difficulty-desc">45 clues</span>
+          <span class="difficulty-name" data-i18n="difficulty.easy">Easy</span>
+          <span class="difficulty-desc" data-i18n="difficulty.clues" data-i18n-param-n="45">45 clues</span>
         </button>
         <button class="difficulty-btn" data-difficulty="MEDIUM">
-          <span class="difficulty-name">Medium</span>
-          <span class="difficulty-desc">38 clues</span>
+          <span class="difficulty-name" data-i18n="difficulty.medium">Medium</span>
+          <span class="difficulty-desc" data-i18n="difficulty.clues" data-i18n-param-n="38">38 clues</span>
         </button>
         <button class="difficulty-btn" data-difficulty="HARD">
-          <span class="difficulty-name">Hard</span>
-          <span class="difficulty-desc">32 clues</span>
+          <span class="difficulty-name" data-i18n="difficulty.hard">Hard</span>
+          <span class="difficulty-desc" data-i18n="difficulty.clues" data-i18n-param-n="32">32 clues</span>
         </button>
       </div>
-      <button id="close-difficulty-modal" class="close-btn">Cancel</button>
+      <button id="close-difficulty-modal" class="close-btn" data-i18n="difficulty.cancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal">
+    <div class="modal-content">
+      <h2 data-i18n="settings.title">Settings</h2>
+      <div id="settings-list"></div>
+      <button id="settings-done" class="settings-done" data-i18n="settings.done">Done</button>
     </div>
   </div>
 

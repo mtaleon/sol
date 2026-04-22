@@ -135,23 +135,17 @@ export class ConsoleRenderer {
     const { YELLOW, CYAN, RESET, DIM } = this.COLORS;
     const lines = [];
 
-    lines.push(`${YELLOW}Rules:${RESET}`);
-    lines.push(`${DIM}Fill the grid so that every column,${RESET}`);
-    lines.push(`${DIM}row and 3x3 box contains each of${RESET}`);
-    lines.push(`${DIM}the digits 1 to 9.${RESET}`);
+    lines.push(`${DIM}1-9 unique in rows, columns, boxes${RESET}`);
     lines.push('');
+    lines.push(`${YELLOW}Controls${RESET}`);
+    lines.push(`  ${CYAN}arrows / hjkl${RESET} ${DIM}move${RESET}`);
+    lines.push(`  ${CYAN}1-9${RESET}           ${DIM}place${RESET}`);
+    lines.push(`  ${CYAN}0 / Backspace${RESET} ${DIM}clear${RESET}`);
     lines.push('');
-    lines.push(`${YELLOW}Controls:${RESET}`);
-    lines.push(`  ${CYAN}↑↓←→ / hjkl${RESET}  ${DIM}move cursor${RESET}`);
-    lines.push(`  ${CYAN}1-9${RESET}          ${DIM}place digit${RESET}`);
-    lines.push(`  ${CYAN}0 / Backspace${RESET} ${DIM}clear digit${RESET}`);
-    lines.push(`  ${CYAN}n${RESET}            ${DIM}new board${RESET}`);
-    lines.push(`  ${CYAN}s${RESET}            ${DIM}save game${RESET}`);
-    lines.push(`  ${CYAN}r${RESET}            ${DIM}restart${RESET}`);
-    lines.push(`  ${CYAN}u${RESET}            ${DIM}undo last move${RESET}`);
-    lines.push(`  ${CYAN}v${RESET}            ${DIM}solve${RESET}`);
-    lines.push(`  ${CYAN}?${RESET}            ${DIM}request hint${RESET}`);
-    lines.push(`  ${CYAN}q${RESET}            ${DIM}quit game${RESET}`);
+    lines.push(`  ${CYAN}u${RESET} ${DIM}undo${RESET}   ${CYAN}?${RESET} ${DIM}hint${RESET}`);
+    lines.push(`  ${CYAN}v${RESET} ${DIM}solve${RESET}  ${CYAN}s${RESET} ${DIM}save${RESET}`);
+    lines.push(`  ${CYAN}r${RESET} ${DIM}restart${RESET} ${CYAN}n${RESET} ${DIM}new${RESET}`);
+    lines.push(`  ${CYAN}q${RESET} ${DIM}quit${RESET}`);
 
     return lines;
   }

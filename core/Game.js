@@ -2,10 +2,13 @@ import { EVENTS } from './constants.js';
 import { Board } from './Board.js';
 import { Solver } from './Solver.js';
 
+const MAX_UNDO_STACK = 200;
+
 export class Game {
-  constructor(eventBus, storage) {
+  constructor(eventBus, storage, settings) {
     this.eventBus = eventBus;
     this.storage = storage;
+    this.settings = settings;
     this.board = null;
     this.selectedCell = null;
     this.selectedNumber = null;
@@ -13,17 +16,29 @@ export class Game {
     this.undoStack = [];
     this.redoStack = [];
     this.moves = 0;
+    this.mistakes = 0;
+    this.hintsUsed = 0;
     this.startTime = null;
     this.elapsed = 0;
     this.timerInterval = null;
+    this.paused = false;
+    this.pausedDuration = 0;
+    this.pauseStartTime = null;
+    this.difficulty = null;
+    this.solution = null;
+    this.puzzleHash = null;
+    this.originalPuzzle = null;
+    this.isDaily = false;
+    this.isPractice = false;
   }
 
-  startGame(puzzleArray) {
-    // Clear any previous saved game
+  startGame(puzzleArray, difficulty = 'MEDIUM') {
     this.clearSave();
 
-    // Store original puzzle for restart capability
     this.originalPuzzle = [...puzzleArray];
+    this.difficulty = difficulty;
+    this.solution = Solver.solve([...puzzleArray]);
+    this.puzzleHash = puzzleArray.join(',');
 
     this.board = new Board(puzzleArray);
     this.selectedCell = null;
@@ -32,77 +47,125 @@ export class Game {
     this.undoStack = [];
     this.redoStack = [];
     this.moves = 0;
+    this.mistakes = 0;
+    this.hintsUsed = 0;
     this.startTime = Date.now();
     this.elapsed = 0;
+    this.paused = false;
+    this.pausedDuration = 0;
+    this.pauseStartTime = null;
     this._startTimer();
 
     this.eventBus.emit(EVENTS.GAME_STARTED, {
-      cells: this.board.cells
+      cells: this.board.cells,
+      difficulty: this.difficulty
     });
 
-    // Save initial state
     this.save();
   }
 
   selectCell(row, col) {
+    if (this.paused) return;
+
     const cellId = row * 9 + col;
     this.selectedCell = cellId;
-    this.selectedNumber = null;  // Clear number selection when selecting cell
+    this.selectedNumber = null;
 
-    // Compute highlight state (data-driven)
     const highlightState = this._computeHighlightState();
-
     this.eventBus.emit(EVENTS.SELECTION_CHANGED, { cellId });
     this.eventBus.emit(EVENTS.HIGHLIGHT_CHANGED, highlightState);
   }
 
   selectNumber(number) {
     this.selectedNumber = number;
-    this.selectedCell = null;  // Clear cell selection when selecting number
+    this.selectedCell = null;
 
     const highlightState = this._computeHighlightState();
     this.eventBus.emit(EVENTS.HIGHLIGHT_CHANGED, highlightState);
   }
 
   setCell(row, col, value) {
+    if (this.paused) return;
+
     const cellId = row * 9 + col;
     const cell = this.board.getCell(row, col);
 
-    // Check if this is a fixed cell
     if (cell.given) {
       this.eventBus.emit('input:invalid', { cellId });
       return;
     }
 
-    // Notes mode: toggle note instead of setting value
     if (this.notesMode && value !== 0) {
       this.toggleNote(row, col, value);
       return;
     }
 
-    // Regular mode: set value
     const prevValue = cell.value;
+    const prevNotes = Array.from(cell.notes);
 
     if (!this.board.setCell(row, col, value)) {
-      // Fixed cell - play error sound
       this.eventBus.emit('input:invalid', { cellId });
       return;
     }
 
-    // Clear notes when setting a value
     if (value !== 0) {
       cell.notes.clear();
     }
 
-    // Undo/redo tracking
-    this.undoStack.push({ cellId, prevValue, nextValue: value, timestamp: Date.now() });
+    // Build undo action (may become compound if auto-remove notes)
+    const valueAction = {
+      type: 'value',
+      cellId,
+      prevValue,
+      nextValue: value,
+      prevNotes
+    };
+
+    const autoRemoved = [];
+    if (value !== 0 && this.settings && this.settings.get('autoRemoveNotes')) {
+      const peers = this.board.getPeerCells(row, col);
+      for (const peerId of peers) {
+        const peer = this.board.cells[peerId];
+        if (peer.notes.has(value)) {
+          peer.notes.delete(value);
+          autoRemoved.push({ type: 'note', cellId: peerId, number: value, wasPresent: true });
+        }
+      }
+    }
+
+    if (autoRemoved.length > 0) {
+      this._pushUndo({ type: 'compound', actions: [valueAction, ...autoRemoved] });
+    } else {
+      this._pushUndo(valueAction);
+    }
+
     this.redoStack = [];
     this.moves++;
 
+    // Mistake check
+    if (value !== 0 && this.solution && value !== this.solution[cellId]) {
+      this.mistakes++;
+      this.eventBus.emit(EVENTS.MISTAKE_MADE, { cellId, value, mistakes: this.mistakes });
+
+      const limit = this.settings ? this.settings.get('mistakeLimit') : 3;
+      if (limit > 0 && this.mistakes >= limit) {
+        this._stopTimer();
+        this.eventBus.emit(EVENTS.GAME_OVER, {
+          elapsed: this.elapsed,
+          moves: this.moves,
+          mistakes: this.mistakes,
+          hintsUsed: this.hintsUsed,
+          difficulty: this.difficulty
+        });
+        this.clearSave();
+        return;
+      }
+    }
+
     // Validate
     const conflicts = this.board.validateCell(row, col);
-    this.board.cells.forEach((cell, id) => {
-      cell.conflict = conflicts.has(id);
+    this.board.cells.forEach((c, id) => {
+      c.conflict = conflicts.has(id);
     });
 
     this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId, value });
@@ -111,7 +174,6 @@ export class Game {
       isComplete: this.board.isComplete()
     });
 
-    // Recompute highlights after board change
     const highlightState = this._computeHighlightState();
     this.eventBus.emit(EVENTS.HIGHLIGHT_CHANGED, highlightState);
 
@@ -119,11 +181,15 @@ export class Game {
       this._stopTimer();
       this.eventBus.emit(EVENTS.GAME_COMPLETED, {
         elapsed: this.elapsed,
-        moves: this.moves
+        moves: this.moves,
+        mistakes: this.mistakes,
+        hintsUsed: this.hintsUsed,
+        difficulty: this.difficulty,
+        isDaily: this.isDaily
       });
-      this.clearSave();  // Clear save when puzzle completed
+      this.clearSave();
     } else {
-      this.save();  // Auto-save after each move
+      this.save();
     }
   }
 
@@ -131,26 +197,10 @@ export class Game {
     if (this.undoStack.length === 0) return;
 
     const action = this.undoStack.pop();
-    const { cellId, prevValue } = action;
-    const row = Math.floor(cellId / 9);
-    const col = cellId % 9;
-
-    this.board.setCell(row, col, prevValue);
+    this._applyUndo(action);
     this.redoStack.push(action);
 
-    const conflicts = this.board.validateAll();
-    this.board.cells.forEach((cell, id) => {
-      cell.conflict = conflicts.has(id);
-    });
-
-    this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId, value: prevValue });
-    this.eventBus.emit(EVENTS.VALIDATION_CHANGED, { conflicts });
-
-    // Recompute highlights after undo
-    const highlightState = this._computeHighlightState();
-    this.eventBus.emit(EVENTS.HIGHLIGHT_CHANGED, highlightState);
-
-    // Auto-save after undo
+    this._revalidateAndEmit();
     this.save();
   }
 
@@ -158,27 +208,89 @@ export class Game {
     if (this.redoStack.length === 0) return;
 
     const action = this.redoStack.pop();
-    const { cellId, nextValue } = action;
-    const row = Math.floor(cellId / 9);
-    const col = cellId % 9;
-
-    this.board.setCell(row, col, nextValue);
+    this._applyRedo(action);
     this.undoStack.push(action);
 
+    this._revalidateAndEmit();
+    this.save();
+  }
+
+  _applyUndo(action) {
+    switch (action.type) {
+      case 'value': {
+        const row = Math.floor(action.cellId / 9);
+        const col = action.cellId % 9;
+        this.board.setCell(row, col, action.prevValue);
+        const cell = this.board.getCell(row, col);
+        cell.notes = new Set(action.prevNotes);
+        break;
+      }
+      case 'note': {
+        const cell = this.board.cells[action.cellId];
+        if (action.wasPresent) {
+          cell.notes.add(action.number);
+        } else {
+          cell.notes.delete(action.number);
+        }
+        break;
+      }
+      case 'compound': {
+        for (let i = action.actions.length - 1; i >= 0; i--) {
+          this._applyUndo(action.actions[i]);
+        }
+        break;
+      }
+    }
+  }
+
+  _applyRedo(action) {
+    switch (action.type) {
+      case 'value': {
+        const row = Math.floor(action.cellId / 9);
+        const col = action.cellId % 9;
+        this.board.setCell(row, col, action.nextValue);
+        const cell = this.board.getCell(row, col);
+        if (action.nextValue !== 0) {
+          cell.notes.clear();
+        }
+        break;
+      }
+      case 'note': {
+        const cell = this.board.cells[action.cellId];
+        if (action.wasPresent) {
+          cell.notes.delete(action.number);
+        } else {
+          cell.notes.add(action.number);
+        }
+        break;
+      }
+      case 'compound': {
+        for (const sub of action.actions) {
+          this._applyRedo(sub);
+        }
+        break;
+      }
+    }
+  }
+
+  _revalidateAndEmit() {
     const conflicts = this.board.validateAll();
     this.board.cells.forEach((cell, id) => {
       cell.conflict = conflicts.has(id);
     });
 
-    this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId, value: nextValue });
+    this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId: null, value: null });
     this.eventBus.emit(EVENTS.VALIDATION_CHANGED, { conflicts });
 
-    // Recompute highlights after redo
     const highlightState = this._computeHighlightState();
     this.eventBus.emit(EVENTS.HIGHLIGHT_CHANGED, highlightState);
+  }
 
-    // Auto-save after redo
-    this.save();
+  _pushUndo(action) {
+    this.undoStack.push(action);
+    if (this.undoStack.length > MAX_UNDO_STACK) {
+      this.undoStack.shift();
+    }
   }
 
   toggleNotesMode() {
@@ -187,23 +299,44 @@ export class Game {
   }
 
   toggleNote(row, col, number) {
+    if (this.paused) return;
+
     const cell = this.board.getCell(row, col);
 
-    // Can't add notes to fixed cells or cells with values
-    if (cell.given || cell.value !== 0) {
-      return;
-    }
+    if (cell.given || cell.value !== 0) return;
 
-    if (cell.notes.has(number)) {
+    const wasPresent = cell.notes.has(number);
+    if (wasPresent) {
       cell.notes.delete(number);
     } else {
       cell.notes.add(number);
     }
 
     const cellId = row * 9 + col;
-    this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId, value: cell.value });
+    this._pushUndo({ type: 'note', cellId, number, wasPresent });
+    this.redoStack = [];
 
-    // Auto-save after notes change
+    this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId, value: cell.value });
+    this.save();
+  }
+
+  clearNotes(row, col) {
+    if (this.paused) return;
+
+    const cell = this.board.getCell(row, col);
+    if (cell.notes.size === 0) return;
+
+    const cellId = row * 9 + col;
+    const subActions = [];
+    for (const num of cell.notes) {
+      subActions.push({ type: 'note', cellId, number: num, wasPresent: true });
+    }
+    cell.notes.clear();
+
+    this._pushUndo({ type: 'compound', actions: subActions });
+    this.redoStack = [];
+
+    this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId, value: cell.value });
     this.save();
   }
 
@@ -212,26 +345,35 @@ export class Game {
       selected: this.selectedCell,
       sameNumber: new Set(),
       region: new Set(),
-      conflicts: new Set()
+      conflicts: new Set(),
+      primaryConflict: null
     };
 
     if (this.selectedCell !== null) {
-      // Selecting a cell = analysis mode (show region + conflicts)
       const row = Math.floor(this.selectedCell / 9);
       const col = this.selectedCell % 9;
-      state.region = this.board.getRegionCells(row, col);
 
-      const cell = this.board.getCell(row, col);
-      if (cell.value !== 0) {
-        state.sameNumber = this.board.getCellsWithValue(cell.value);
+      const showConflicts = this.settings ? this.settings.get('showConflicts') : true;
+      if (showConflicts) {
+        state.conflicts = this.board.validateAll();
       }
 
-      // Show conflicts only when analyzing a specific cell
-      state.conflicts = this.board.validateAll();
+      // If conflicts exist, suppress non-essential highlights
+      if (state.conflicts.size > 0) {
+        // Mark the selected cell as primary error if it's in the conflict set
+        if (state.conflicts.has(this.selectedCell)) {
+          state.primaryConflict = this.selectedCell;
+        }
+      } else {
+        state.region = this.board.getRegionCells(row, col);
+        const cell = this.board.getCell(row, col);
+        if (cell.value !== 0) {
+          state.sameNumber = this.board.getCellsWithValue(cell.value);
+        }
+      }
     }
 
     if (this.selectedNumber !== null) {
-      // Selecting a number = exploration mode (only show same numbers, no conflicts)
       state.sameNumber = this.board.getCellsWithValue(this.selectedNumber);
     }
 
@@ -239,25 +381,69 @@ export class Game {
   }
 
   getHint() {
-    const gridArray = this.board.cells.map(c => c.value);
-    const hint = Solver.getHint(gridArray);
+    if (this.paused) return;
+    if (!this.solution) return;
 
-    if (hint) {
-      const row = Math.floor(hint.cellId / 9);
-      const col = hint.cellId % 9;
-      this.setCell(row, col, hint.value);
+    let targetCellId = null;
 
-      // Mark as hint source
-      const cell = this.board.getCell(row, col);
-      cell.source = 'hint';
-
-      this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId: hint.cellId, value: hint.value });
+    // Prefer selected cell if empty
+    if (this.selectedCell !== null) {
+      const cell = this.board.cells[this.selectedCell];
+      if (!cell.given && cell.value === 0) {
+        targetCellId = this.selectedCell;
+      }
     }
+
+    // Fallback: first empty cell
+    if (targetCellId === null) {
+      for (let i = 0; i < 81; i++) {
+        const cell = this.board.cells[i];
+        if (!cell.given && cell.value === 0) {
+          targetCellId = i;
+          break;
+        }
+      }
+    }
+
+    if (targetCellId === null) return;
+
+    const row = Math.floor(targetCellId / 9);
+    const col = targetCellId % 9;
+    const hintValue = this.solution[targetCellId];
+
+    this.hintsUsed++;
+    this.setCell(row, col, hintValue);
+
+    const cell = this.board.getCell(row, col);
+    cell.source = 'hint';
+
+    this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId: targetCellId, value: hintValue });
+  }
+
+  // Pause / Resume
+  pause() {
+    if (this.paused) return;
+    this.paused = true;
+    this.pauseStartTime = Date.now();
+    this._stopTimer();
+    this.eventBus.emit(EVENTS.GAME_PAUSED);
+    this.save();
+  }
+
+  resume() {
+    if (!this.paused) return;
+    this.pausedDuration += Date.now() - this.pauseStartTime;
+    this.pauseStartTime = null;
+    this.paused = false;
+    this._startTimer();
+    this.eventBus.emit(EVENTS.GAME_RESUMED);
+    this.save();
   }
 
   _startTimer() {
+    this._stopTimer();
     this.timerInterval = setInterval(() => {
-      this.elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+      this.elapsed = Math.floor((Date.now() - this.startTime - this.pausedDuration) / 1000);
     }, 1000);
   }
 
@@ -268,13 +454,14 @@ export class Game {
     }
   }
 
-  // Serialize game state to JSON-friendly object (Level A: no undo/redo)
+  // Serialization — save format v2
   serialize() {
     if (!this.board) return null;
 
     return {
-      version: 1,
+      version: 2,
       timestamp: Date.now(),
+      difficulty: this.difficulty,
       puzzle: this.board.cells
         .map((cell, idx) => cell.given ? { idx, value: cell.value } : null)
         .filter(item => item !== null),
@@ -283,65 +470,87 @@ export class Game {
         notes: Array.from(cell.notes),
         source: cell.source
       })),
+      solution: this.solution,
+      puzzleHash: this.puzzleHash,
       elapsed: this.elapsed,
       moves: this.moves,
+      mistakes: this.mistakes,
+      hintsUsed: this.hintsUsed,
       startTime: this.startTime,
-      notesMode: this.notesMode
+      pausedDuration: this.pausedDuration,
+      notesMode: this.notesMode,
+      isDaily: this.isDaily,
+      isPractice: this.isPractice,
+      undoStack: this.undoStack,
+      redoStack: this.redoStack
     };
   }
 
-  // Restore game state from serialized data
   hydrate(data) {
-    if (!data || data.version !== 1) return false;
+    if (!data) return false;
+
+    if (data.version === 1) {
+      data = this._migrateV1toV2(data);
+    }
+    if (data.version !== 2) return false;
 
     try {
-      // Reconstruct puzzle array (81 cells, 0 for empty)
       const puzzleArray = new Array(81).fill(0);
       data.puzzle.forEach(({ idx, value }) => {
         puzzleArray[idx] = value;
       });
 
-      // Create new board
       this.board = new Board(puzzleArray);
 
-      // Restore cell states
       data.grid.forEach((cellData, idx) => {
         const cell = this.board.cells[idx];
         cell.value = cellData.value;
         cell.notes = new Set(cellData.notes);
         cell.source = cellData.source;
-
-        // Recalculate given status (puzzle cells are given)
         cell.given = puzzleArray[idx] !== 0;
       });
 
-      // Restore game state
+      this.difficulty = data.difficulty || 'MEDIUM';
       this.moves = data.moves;
       this.elapsed = data.elapsed;
       this.startTime = data.startTime;
+      this.pausedDuration = data.pausedDuration || 0;
+      this.mistakes = data.mistakes || 0;
+      this.hintsUsed = data.hintsUsed || 0;
       this.notesMode = data.notesMode;
+      this.isDaily = data.isDaily || false;
+      this.isPractice = data.isPractice || false;
       this.selectedCell = null;
       this.selectedNumber = null;
-      this.undoStack = [];
-      this.redoStack = [];
+      this.paused = false;
+      this.pauseStartTime = null;
 
-      // Restore original puzzle for restart capability
       this.originalPuzzle = puzzleArray;
+      this.puzzleHash = data.puzzleHash || puzzleArray.join(',');
 
-      // Restart timer if game was in progress
+      // Restore or recompute solution
+      if (data.solution && data.puzzleHash === puzzleArray.join(',')) {
+        this.solution = data.solution;
+      } else {
+        this.solution = Solver.solve([...puzzleArray]);
+      }
+
+      // Restore undo/redo stacks (bounded)
+      this.undoStack = Array.isArray(data.undoStack) ? data.undoStack.slice(-MAX_UNDO_STACK) : [];
+      this.redoStack = Array.isArray(data.redoStack) ? data.redoStack.slice(-MAX_UNDO_STACK) : [];
+
       if (this.startTime && !this.board.isComplete()) {
         this._startTimer();
       }
 
-      // Validate and set conflicts
       const conflicts = this.board.validateAll();
       this.board.cells.forEach((cell, id) => {
         cell.conflict = conflicts.has(id);
       });
 
-      // Emit events to update UI
       this.eventBus.emit(EVENTS.GAME_STARTED, {
-        cells: this.board.cells
+        cells: this.board.cells,
+        difficulty: this.difficulty
       });
 
       return true;
@@ -351,7 +560,28 @@ export class Game {
     }
   }
 
-  // Auto-save current game state
+  _migrateV1toV2(data) {
+    const puzzleArray = new Array(81).fill(0);
+    data.puzzle.forEach(({ idx, value }) => {
+      puzzleArray[idx] = value;
+    });
+
+    return {
+      ...data,
+      version: 2,
+      difficulty: 'MEDIUM',
+      mistakes: 0,
+      hintsUsed: 0,
+      solution: Solver.solve([...puzzleArray]),
+      puzzleHash: puzzleArray.join(','),
+      pausedDuration: 0,
+      isDaily: false,
+      isPractice: false,
+      undoStack: [],
+      redoStack: []
+    };
+  }
+
   save() {
     if (!this.storage) return;
 
@@ -361,7 +591,6 @@ export class Game {
     }
   }
 
-  // Load saved game if exists
   loadSavedGame() {
     if (!this.storage) return false;
 
@@ -373,25 +602,18 @@ export class Game {
     return false;
   }
 
-  // Clear saved game
   clearSave() {
     if (this.storage) {
       this.storage.remove('sudoku-save');
     }
   }
 
-  // Restart current puzzle from original state
   restart() {
     if (!this.originalPuzzle) return;
-
-    // Clear save before restarting
     this.clearSave();
-
-    // Restart with original puzzle
-    this.startGame(this.originalPuzzle);
+    this.startGame(this.originalPuzzle, this.difficulty);
   }
 
-  // Auto-solve the puzzle using the solver
   solve() {
     if (!this.board) return;
 
@@ -403,7 +625,6 @@ export class Game {
       return;
     }
 
-    // Apply solution to all non-given cells
     this.board.cells.forEach((cell, idx) => {
       if (!cell.given && cell.value !== solution[idx]) {
         cell.value = solution[idx];
@@ -412,21 +633,16 @@ export class Game {
       }
     });
 
-    // Check completion
     if (this.board.isComplete()) {
       this._stopTimer();
-      this.eventBus.emit(EVENTS.GAME_COMPLETED, {
-        elapsed: this.elapsed,
-        moves: this.moves
-      });
+      // Assisted — not emitting GAME_COMPLETED (per R1)
     }
 
-    // Clear undo/redo since we're applying multiple changes
     this.undoStack = [];
     this.redoStack = [];
 
     this.eventBus.emit(EVENTS.BOARD_CHANGED, { cellId: null, value: null });
     this.eventBus.emit('solve:success');
-    this.clearSave(); // Don't save auto-solved games
+    this.clearSave();
   }
 }

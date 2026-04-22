@@ -10,24 +10,26 @@ export class WebInput extends IInput {
     this.longPressTimer = null;
     this.longPressTarget = null;
 
-    // Cursor position tracking
     this.cursorRow = 0;
     this.cursorCol = 0;
     this.cursorMoveCallback = null;
 
-    // Command shortcuts
     this.newGameCallback = null;
     this.saveGameCallback = null;
     this.restartCallback = null;
     this.undoCallback = null;
+    this.redoCallback = null;
     this.solveCallback = null;
     this.hintCallback = null;
+    this.clearCallback = null;
+    this.clearNotesCallback = null;
+    this.notesToggleCallback = null;
   }
 
   initialize() {
     const grid = document.getElementById('sudoku-grid');
 
-    // Long-press detection for notes mode toggle
+    // Cell long-press detection (notes mode toggle)
     const handlePressStart = (e) => {
       const cell = e.target.closest('.cell');
       if (!cell) return;
@@ -36,11 +38,10 @@ export class WebInput extends IInput {
       this.longPressTimer = setTimeout(() => {
         if (this.longPressCallback && this.longPressTarget) {
           this.longPressCallback();
-          // Visual feedback
           cell.classList.add('long-press-feedback');
           setTimeout(() => cell.classList.remove('long-press-feedback'), 200);
         }
-      }, 300); // 300ms for long press
+      }, 300);
     };
 
     const handlePressEnd = (e) => {
@@ -49,12 +50,10 @@ export class WebInput extends IInput {
         this.longPressTimer = null;
       }
 
-      // Normal click if not long-pressed
       const cell = e.target.closest('.cell');
       if (cell && cell === this.longPressTarget && this.cellClickCallback) {
         const row = parseInt(cell.dataset.row);
         const col = parseInt(cell.dataset.col);
-        // Sync cursor position with mouse click
         this.cursorRow = row;
         this.cursorCol = col;
         this.cellClickCallback(row, col);
@@ -71,18 +70,15 @@ export class WebInput extends IInput {
       this.longPressTarget = null;
     };
 
-    // Touch events
     grid.addEventListener('touchstart', handlePressStart, { passive: true });
     grid.addEventListener('touchend', handlePressEnd);
     grid.addEventListener('touchcancel', handlePressCancel);
     grid.addEventListener('touchmove', handlePressCancel);
-
-    // Mouse events
     grid.addEventListener('mousedown', handlePressStart);
     grid.addEventListener('mouseup', handlePressEnd);
     grid.addEventListener('mouseleave', handlePressCancel);
 
-    // Number pad - for highlighting only
+    // Number pad — place number if cell selected, otherwise highlight
     document.getElementById('number-pad').addEventListener('click', (e) => {
       if (e.target.dataset.number && this.numberSelectCallback) {
         const number = parseInt(e.target.dataset.number);
@@ -90,16 +86,30 @@ export class WebInput extends IInput {
       }
     });
 
-    // Clear button - for placing 0 via keyboard
-    document.getElementById('clear-btn').addEventListener('click', () => {
-      if (this.numberInputCallback) {
-        this.numberInputCallback(0);
-      }
+    // Undo button — short press=undo, long press=redo
+    this._setupLongPress('undo-btn', {
+      onShort: () => this.undoCallback?.(),
+      onLong: () => this.redoCallback?.()
+    });
+
+    // Clear button — short press=clear value, long press=clear notes
+    this._setupLongPress('clear-btn', {
+      onShort: () => this.clearCallback?.(),
+      onLong: () => this.clearNotesCallback?.()
+    });
+
+    // Notes toggle button
+    document.getElementById('notes-btn').addEventListener('click', () => {
+      this.notesToggleCallback?.();
+    });
+
+    // Hint button
+    document.getElementById('hint-btn').addEventListener('click', () => {
+      this.hintCallback?.();
     });
 
     // Keyboard
     document.addEventListener('keydown', (e) => {
-      // Number input
       if (e.key >= '1' && e.key <= '9' && this.numberInputCallback) {
         this.numberInputCallback(parseInt(e.key));
         return;
@@ -108,119 +118,131 @@ export class WebInput extends IInput {
         return;
       }
 
-      // Cursor movement - Arrow keys
       switch (e.key) {
-        case 'ArrowUp':
-          e.preventDefault();
-          this.moveCursor(-1, 0);
-          return;
-        case 'ArrowDown':
-          e.preventDefault();
-          this.moveCursor(1, 0);
-          return;
-        case 'ArrowLeft':
-          e.preventDefault();
-          this.moveCursor(0, -1);
-          return;
-        case 'ArrowRight':
-          e.preventDefault();
-          this.moveCursor(0, 1);
-          return;
+        case 'ArrowUp': e.preventDefault(); this.moveCursor(-1, 0); return;
+        case 'ArrowDown': e.preventDefault(); this.moveCursor(1, 0); return;
+        case 'ArrowLeft': e.preventDefault(); this.moveCursor(0, -1); return;
+        case 'ArrowRight': e.preventDefault(); this.moveCursor(0, 1); return;
       }
 
-      // Cursor movement - vim-style (hjkl)
       switch (e.key) {
-        case 'h':
-          this.moveCursor(0, -1);
-          return;
-        case 'j':
-          this.moveCursor(1, 0);
-          return;
-        case 'k':
-          this.moveCursor(-1, 0);
-          return;
-        case 'l':
-          this.moveCursor(0, 1);
-          return;
+        case 'h': this.moveCursor(0, -1); return;
+        case 'j': this.moveCursor(1, 0); return;
+        case 'k': this.moveCursor(-1, 0); return;
+        case 'l': this.moveCursor(0, 1); return;
       }
 
-      // Command shortcuts
       switch (e.key) {
         case 'n':
-          if (this.newGameCallback) this.newGameCallback();
+          if (e.ctrlKey || e.metaKey) return;
+          this.notesToggleCallback?.();
+          return;
+        case 'u':
+          this.undoCallback?.();
+          return;
+        case 'U':
+          this.redoCallback?.();
+          return;
+        case 'z':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            if (e.shiftKey) {
+              this.redoCallback?.();
+            } else {
+              this.undoCallback?.();
+            }
+          }
+          return;
+        case 'y':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            this.redoCallback?.();
+          }
           return;
         case 's':
           if (this.saveGameCallback) {
-            e.preventDefault(); // Prevent browser save dialog
+            e.preventDefault();
             this.saveGameCallback();
           }
           return;
         case 'r':
           if (this.restartCallback) this.restartCallback();
           return;
-        case 'u':
-          if (this.undoCallback) this.undoCallback();
-          return;
         case 'v':
           if (this.solveCallback) this.solveCallback();
           return;
         case '?':
-          if (this.hintCallback) this.hintCallback();
+          this.hintCallback?.();
           return;
       }
     });
   }
 
-  onCellClick(callback) {
-    this.cellClickCallback = callback;
+  _setupLongPress(elementId, { onShort, onLong }) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    let timer = null;
+    let longPressed = false;
+
+    const startPress = (e) => {
+      e.preventDefault();
+      longPressed = false;
+      timer = setTimeout(() => {
+        longPressed = true;
+        onLong();
+        el.classList.add('long-press-feedback');
+        setTimeout(() => el.classList.remove('long-press-feedback'), 200);
+      }, 300);
+    };
+
+    const endPress = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      if (!longPressed) {
+        onShort();
+      }
+      longPressed = false;
+    };
+
+    const cancelPress = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      longPressed = false;
+    };
+
+    el.addEventListener('touchstart', startPress, { passive: false });
+    el.addEventListener('touchend', endPress);
+    el.addEventListener('touchcancel', cancelPress);
+    el.addEventListener('mousedown', startPress);
+    el.addEventListener('mouseup', endPress);
+    el.addEventListener('mouseleave', cancelPress);
   }
 
-  onNumberInput(callback) {
-    this.numberInputCallback = callback;
-  }
-
-  onNumberSelect(callback) {
-    this.numberSelectCallback = callback;
-  }
-
-  onLongPress(callback) {
-    this.longPressCallback = callback;
-  }
-
-  onCursorMove(callback) {
-    this.cursorMoveCallback = callback;
-  }
-
-  onNewGame(callback) {
-    this.newGameCallback = callback;
-  }
-
-  onSaveGame(callback) {
-    this.saveGameCallback = callback;
-  }
-
-  onRestart(callback) {
-    this.restartCallback = callback;
-  }
-
-  onUndo(callback) {
-    this.undoCallback = callback;
-  }
-
-  onSolve(callback) {
-    this.solveCallback = callback;
-  }
-
-  onHint(callback) {
-    this.hintCallback = callback;
-  }
+  onCellClick(callback) { this.cellClickCallback = callback; }
+  onNumberInput(callback) { this.numberInputCallback = callback; }
+  onNumberSelect(callback) { this.numberSelectCallback = callback; }
+  onLongPress(callback) { this.longPressCallback = callback; }
+  onCursorMove(callback) { this.cursorMoveCallback = callback; }
+  onNewGame(callback) { this.newGameCallback = callback; }
+  onSaveGame(callback) { this.saveGameCallback = callback; }
+  onRestart(callback) { this.restartCallback = callback; }
+  onUndo(callback) { this.undoCallback = callback; }
+  onRedo(callback) { this.redoCallback = callback; }
+  onSolve(callback) { this.solveCallback = callback; }
+  onHint(callback) { this.hintCallback = callback; }
+  onClear(callback) { this.clearCallback = callback; }
+  onClearNotes(callback) { this.clearNotesCallback = callback; }
+  onNotesToggle(callback) { this.notesToggleCallback = callback; }
 
   moveCursor(rowDelta, colDelta) {
     this.cursorRow = Math.max(0, Math.min(8, this.cursorRow + rowDelta));
     this.cursorCol = Math.max(0, Math.min(8, this.cursorCol + colDelta));
-    if (this.cursorMoveCallback) {
-      this.cursorMoveCallback(this.cursorRow, this.cursorCol);
-    }
+    this.cursorMoveCallback?.(this.cursorRow, this.cursorCol);
   }
 
   cleanup() {

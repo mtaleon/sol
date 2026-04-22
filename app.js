@@ -1,11 +1,13 @@
 import { EventBus } from './core/events.js';
 import { Game } from './core/Game.js';
-import { DEMO_PUZZLE, EVENTS } from './core/constants.js';
+import { EVENTS } from './core/constants.js';
+import { Settings } from './core/Settings.js';
 import { Platform } from './platform/Platform.js';
 import { WebRenderer } from './platforms/web-dom/Renderer.js';
 import { WebInput } from './platforms/web-dom/Input.js';
 import { WebStorage } from './platforms/web-dom/Storage.js';
 import { Generator } from './core/Generator.js';
+import { t, setLanguage } from './core/i18n.js';
 
 // Toast notification helper
 function showToast(message, type = 'info') {
@@ -13,13 +15,19 @@ function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.textContent = message;
-
   container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
 
-  // Remove after animation completes
-  setTimeout(() => {
-    toast.remove();
-  }, 3000);
+// One-time tips tracker
+const TIPS_KEY = 'sudoku-tips';
+function showTipOnce(tipId, message) {
+  const storage = new WebStorage();
+  const tips = storage.get(TIPS_KEY) || {};
+  if (tips[tipId]) return;
+  tips[tipId] = true;
+  storage.set(TIPS_KEY, tips);
+  showToast(message, 'info');
 }
 
 // Initialize platform
@@ -27,84 +35,136 @@ const eventBus = new EventBus();
 const renderer = new WebRenderer();
 const input = new WebInput();
 const storage = new WebStorage();
+const settings = new Settings(storage);
 const platform = new Platform(renderer, input);
 
-// Initialize game
-const game = new Game(eventBus, storage);
+// Initialize game with settings
+const game = new Game(eventBus, storage, settings);
 
-// Set new game handler for modal
-renderer.setNewGameHandler(() => {
-  const difficultyModal = document.getElementById('difficulty-modal');
+// Initialize i18n from saved setting
+setLanguage(settings.get('language') || 'en');
+
+// Difficulty modal helpers
+const difficultyModal = document.getElementById('difficulty-modal');
+function showDifficultyModal() {
+  renderer.applyLanguage();
   difficultyModal.classList.add('visible');
+}
+function hideDifficultyModal() {
+  difficultyModal.classList.remove('visible');
+}
+
+// New game handler (used by modals)
+renderer.setNewGameHandler(showDifficultyModal);
+renderer.setRestartHandler(() => {
+  game.restart();
+  showToast(t('toast.gameRestarted'));
 });
 
-// Wire events
-eventBus.on(EVENTS.GAME_STARTED, ({ cells }) => {
+// Compute digit counts for number pad exhaustion
+function computeDigitCounts() {
+  if (!game.board) return {};
+  const counts = {};
+  for (let i = 1; i <= 9; i++) counts[i] = 0;
+  game.board.cells.forEach(cell => {
+    if (cell.value !== 0) counts[cell.value]++;
+  });
+  return counts;
+}
+
+// Apply settings-dependent UI state
+function applySettingsToUI() {
+  const limit = settings.get('mistakeLimit');
+  renderer.updateMistakes(game.mistakes, limit);
+  renderer.setTimerVisible(settings.get('showTimer'));
+}
+
+// ===== EVENT WIRING =====
+
+eventBus.on(EVENTS.GAME_STARTED, ({ cells, difficulty }) => {
   renderer.renderBoard(cells);
+  renderer.updateDifficulty(difficulty || game.difficulty);
+  renderer.updateMistakes(game.mistakes, settings.get('mistakeLimit'));
+  renderer.updateNumberPadExhaustion(computeDigitCounts());
+  renderer.setTimerVisible(settings.get('showTimer'));
 });
 
-eventBus.on(EVENTS.SELECTION_CHANGED, ({ cellId }) => {
-  // Handled by HIGHLIGHT_CHANGED
-});
+eventBus.on(EVENTS.SELECTION_CHANGED, () => {});
 
-eventBus.on(EVENTS.BOARD_CHANGED, ({ cellId, value }) => {
-  const cell = game.board.getCell(Math.floor(cellId / 9), cellId % 9);
-  renderer.updateCell(cellId, cell);
-  renderer.updateMoves(game.moves);
+eventBus.on(EVENTS.BOARD_CHANGED, ({ cellId }) => {
+  if (cellId !== null) {
+    const cell = game.board.getCell(Math.floor(cellId / 9), cellId % 9);
+    renderer.updateCell(cellId, cell);
+  } else {
+    game.board.cells.forEach((cell, id) => renderer.updateCell(id, cell));
+  }
+  renderer.updateNumberPadExhaustion(computeDigitCounts());
 });
 
 eventBus.on(EVENTS.HIGHLIGHT_CHANGED, (highlightState) => {
   renderer.applyHighlights(highlightState);
 });
 
-eventBus.on(EVENTS.VALIDATION_CHANGED, ({ conflicts, isComplete }) => {
-  // Highlights already updated via HIGHLIGHT_CHANGED
+eventBus.on(EVENTS.VALIDATION_CHANGED, () => {});
+
+eventBus.on(EVENTS.MISTAKE_MADE, ({ mistakes }) => {
+  renderer.updateMistakes(mistakes, settings.get('mistakeLimit'));
 });
 
 eventBus.on(EVENTS.GAME_COMPLETED, (data) => {
   renderer.showCompletionModal(data);
 });
 
-// Solve events
+eventBus.on(EVENTS.GAME_OVER, (data) => {
+  renderer.showGameOverModal(data);
+});
+
+eventBus.on(EVENTS.GAME_PAUSED, () => {
+  renderer.showPauseOverlay();
+});
+
+eventBus.on(EVENTS.GAME_RESUMED, () => {
+  renderer.hidePauseOverlay();
+});
+
 eventBus.on('solve:success', () => {
-  showToast('Puzzle solved!', 'success');
+  showToast(t('toast.puzzleSolved'), 'success');
 });
 
 eventBus.on('solve:failed', () => {
-  showToast('Could not solve puzzle', 'error');
+  showToast(t('toast.solveFailed'), 'error');
 });
 
-eventBus.on('input:invalid', () => {
-  // Play error sound (Sprint 2)
-  console.log('Invalid input: cannot modify fixed cell');
+eventBus.on('input:invalid', () => {});
+
+eventBus.on('notes:mode-changed', ({ notesMode }) => {
+  const notesBtn = document.getElementById('notes-btn');
+  notesBtn.classList.toggle('active', notesMode);
+  document.body.classList.toggle('notes-mode', notesMode);
 });
 
-// Wire input
+// ===== INPUT WIRING =====
+
 input.initialize();
 
 input.onCellClick((row, col) => {
   game.selectCell(row, col);
 });
 
-// Cursor movement
 input.onCursorMove((row, col) => {
   game.selectCell(row, col);
 });
 
-// Number pad buttons - place number if cell selected, otherwise highlight
 input.onNumberSelect((number) => {
   if (game.selectedCell !== null) {
-    // Cell selected: place number
     const row = Math.floor(game.selectedCell / 9);
     const col = game.selectedCell % 9;
     game.setCell(row, col, number);
   } else {
-    // No cell selected: highlight same numbers
     game.selectNumber(number);
   }
 });
 
-// Keyboard input - place numbers in selected cell
 input.onNumberInput((number) => {
   if (game.selectedCell !== null) {
     const row = Math.floor(game.selectedCell / 9);
@@ -113,115 +173,149 @@ input.onNumberInput((number) => {
   }
 });
 
-// Long-press to toggle notes mode
 input.onLongPress(() => {
   game.toggleNotesMode();
 });
 
-// Keyboard shortcuts
-input.onNewGame(() => {
-  difficultyModal.classList.add('visible');
-});
-
-input.onSaveGame(() => {
-  game.save();
-  showToast('Game saved', 'success');
-});
-
-input.onRestart(() => {
-  game.restart();
-  showToast('Game restarted', 'info');
+input.onNotesToggle(() => {
+  game.toggleNotesMode();
 });
 
 input.onUndo(() => {
   if (game.undoStack.length === 0) {
-    showToast('Nothing to undo', 'warning');
+    showToast(t('toast.nothingToUndo'), 'warning');
   } else {
     game.undo();
+    showTipOnce('undoRedo', t('toast.undoRedoTip'));
   }
+});
+
+input.onRedo(() => {
+  if (game.redoStack.length === 0) {
+    showToast(t('toast.nothingToRedo'), 'warning');
+  } else {
+    game.redo();
+  }
+});
+
+input.onClear(() => {
+  if (game.selectedCell === null) return;
+  const row = Math.floor(game.selectedCell / 9);
+  const col = game.selectedCell % 9;
+  game.setCell(row, col, 0);
+});
+
+input.onClearNotes(() => {
+  if (game.selectedCell === null) return;
+  const row = Math.floor(game.selectedCell / 9);
+  const col = game.selectedCell % 9;
+  game.clearNotes(row, col);
+});
+
+input.onHint(() => {
+  game.getHint();
+});
+
+input.onSaveGame(() => {
+  game.save();
+  showToast(t('toast.gameSaved'), 'success');
+});
+
+input.onRestart(() => {
+  game.restart();
+  showToast(t('toast.gameRestarted'));
 });
 
 input.onSolve(() => {
   game.solve();
 });
 
-input.onHint(() => {
-  if (game.selectedCell === null) {
-    showToast('Select a cell first', 'warning');
-    return;
-  }
+input.onNewGame(showDifficultyModal);
 
-  const row = Math.floor(game.selectedCell / 9);
-  const col = game.selectedCell % 9;
-  const cell = game.board.getCell(row, col);
+// ===== PAUSE CONTROLS =====
 
-  if (cell.given || cell.value !== 0) {
-    showToast('Cell already filled', 'warning');
-  } else {
-    game.getHint();
-    showToast('Hint applied', 'info');
-  }
+document.getElementById('pause-btn').addEventListener('click', () => {
+  game.pause();
 });
 
-// Difficulty modal
-const difficultyModal = document.getElementById('difficulty-modal');
-const difficultyButtons = document.querySelectorAll('.difficulty-btn');
-
-document.getElementById('new-game-btn').addEventListener('click', () => {
-  difficultyModal.classList.add('visible');
+document.getElementById('resume-btn').addEventListener('click', () => {
+  game.resume();
 });
 
-document.getElementById('close-difficulty-modal').addEventListener('click', () => {
-  difficultyModal.classList.remove('visible');
+document.getElementById('pause-restart-btn').addEventListener('click', () => {
+  renderer.hidePauseOverlay();
+  game.restart();
+  showToast(t('toast.gameRestarted'));
 });
 
-difficultyButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const difficulty = btn.dataset.difficulty;
-    difficultyModal.classList.remove('visible');
+document.getElementById('pause-new-game-btn').addEventListener('click', () => {
+  renderer.hidePauseOverlay();
+  game.resume();
+  showDifficultyModal();
+});
 
-    console.log(`Starting new ${difficulty} game...`);
-    const puzzle = Generator.generate(difficulty);
-    game.startGame(puzzle);
+document.getElementById('pause-settings-btn').addEventListener('click', () => {
+  renderer.showSettings(settings, (key, value) => {
+    settings.set(key, value);
+
+    if (key === 'language') {
+      setLanguage(value);
+      renderer.applyLanguage();
+      renderer.updateDifficulty(game.difficulty);
+      renderer.updateMistakes(game.mistakes, settings.get('mistakeLimit'));
+    }
+
+    applySettingsToUI();
+    eventBus.emit(EVENTS.SETTINGS_CHANGED, { key, value });
+
+    if (['highlightRegion', 'highlightSameNumber', 'showConflicts'].includes(key)) {
+      if (game.selectedCell !== null || game.selectedNumber !== null) {
+        const highlightState = game._computeHighlightState();
+        eventBus.emit(EVENTS.HIGHLIGHT_CHANGED, highlightState);
+      }
+    }
   });
 });
 
-// Controls
-document.getElementById('undo-btn').addEventListener('click', () => {
-  game.undo();
+document.getElementById('settings-done').addEventListener('click', () => {
+  renderer.hideSettings();
 });
 
-document.getElementById('redo-btn').addEventListener('click', () => {
-  game.redo();
+// ===== DIFFICULTY MODAL =====
+
+document.getElementById('close-difficulty-modal').addEventListener('click', hideDifficultyModal);
+
+document.querySelectorAll('.difficulty-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const difficulty = btn.dataset.difficulty;
+    hideDifficultyModal();
+    const puzzle = Generator.generate(difficulty);
+    game.startGame(puzzle, difficulty);
+  });
 });
 
-document.getElementById('hint-btn').addEventListener('click', () => {
-  game.getHint();
-});
+document.getElementById('difficulty-label').addEventListener('click', showDifficultyModal);
 
-const notesBtn = document.getElementById('notes-btn');
-notesBtn.addEventListener('click', () => {
-  game.toggleNotesMode();
-});
+// ===== TIMER UPDATE =====
 
-// Notes mode visual feedback
-eventBus.on('notes:mode-changed', ({ notesMode }) => {
-  notesBtn.classList.toggle('active', notesMode);
-  document.body.classList.toggle('notes-mode', notesMode);
-});
-
-// Timer update
 setInterval(() => {
-  if (game.startTime) {
+  if (game.startTime && !game.paused) {
     renderer.updateTimer(game.elapsed);
   }
 }, 1000);
 
-// Start initial game - load saved game or generate new random puzzle
+// ===== INITIAL GAME =====
+
 if (!game.loadSavedGame()) {
-  const initialPuzzle = Generator.generate('MEDIUM');  // Random medium puzzle
-  game.startGame(initialPuzzle);
+  const initialPuzzle = Generator.generate('MEDIUM');
+  game.startGame(initialPuzzle, 'MEDIUM');
 }
+
+// Apply settings + language on startup
+applySettingsToUI();
+renderer.applyLanguage();
+renderer.updateDifficulty(game.difficulty);
 
 // Debug access
 window.game = game;
+window.settings = settings;

@@ -4,7 +4,8 @@ export const BOX_SIZE = 3;
 export const DIFFICULTY = {
   EASY: { clues: 45, name: 'Easy' },
   MEDIUM: { clues: 38, name: 'Medium' },
-  HARD: { clues: 32, name: 'Hard' }
+  HARD: { clues: 32, name: 'Hard' },
+  CUSTOM: { clues: null, name: 'Custom' }
 };
 
 export const EVENTS = {
@@ -13,7 +14,12 @@ export const EVENTS = {
   BOARD_CHANGED: 'board:changed',
   HIGHLIGHT_CHANGED: 'highlight:changed',
   VALIDATION_CHANGED: 'validation:changed',
-  GAME_COMPLETED: 'game:completed'
+  GAME_COMPLETED: 'game:completed',
+  MISTAKE_MADE: 'game:mistake',
+  GAME_OVER: 'game:over',
+  GAME_PAUSED: 'game:paused',
+  GAME_RESUMED: 'game:resumed',
+  SETTINGS_CHANGED: 'settings:changed'
 };
 
 // Hardcoded puzzle for Sprint 1 (valid Sudoku)

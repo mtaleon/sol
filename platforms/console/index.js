@@ -60,7 +60,9 @@ class ConsoleSudoku {
     });
 
     this.eventBus.on(EVENTS.GAME_COMPLETED, () => {
-      this.message = '🎉 Congratulations! Puzzle solved!';
+      const t = this.formatTime(this.game.elapsed);
+      const m = this.game.moves;
+      this.message = `Completed in ${t} — ${m} moves.`;
       this.messageType = 'info';
       this.render();
     });
@@ -147,7 +149,7 @@ class ConsoleSudoku {
         }
 
         this.eventBus.emit(EVENTS.BOARD_CHANGED, {});
-        this.message = 'Puzzle solved!';
+        this.message = 'Puzzle solved.';
         this.messageType = 'info';
       } else {
         this.message = 'Could not solve puzzle';
@@ -231,7 +233,7 @@ class ConsoleSudoku {
 
   quit() {
     this.renderer.clearScreen();
-    console.log('\n👋 Thanks for playing Su-Do-Ku!\n');
+    console.log('');
     this.input.cleanup();
     process.exit(0);
   }

@@ -1,56 +1,46 @@
-# CLAUDE.md
+# CLAUDE.md — Octile Universe Sudoku (PWA + Capacitor)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Product Positioning
 
-## Project Overview
+This project is a **standalone, high-quality, mobile-first Sudoku PWA** (web + Android via Capacitor) within the **Octile Universe**.
 
-A mobile-first Sudoku PWA with Android support, built with vanilla JavaScript and ES modules. No bundler or build tools required—just file copying and Capacitor for Android builds.
+- Goal: feel like a complete Sudoku app on its own merit (not a minimal gateway).
+- Octile promotion exists, but only as a **soft, post-satisfaction** extension.
 
-**Tech Stack:**
-- Vanilla JavaScript (ES modules)
+## Tech Stack
+
+- Vanilla JavaScript (ES modules) — no bundler or build tools required
 - Capacitor for Android native app
 - Service Worker for PWA
 - Node.js native test runner
 
+## Core Product Goals (Must-Haves)
 
+The app must not feel half-finished. These are baseline expectations:
 
-## Octile Universe Context (Important)
+- Notes (candidates) + strong ergonomics
+- Undo/Redo that covers values + notes + compound operations
+- Mistakes tracking (configurable) + optional game-over
+- Pause/Resume + reliable auto-save + resume after reload/app switch
+- Settings toggles for highlight/notes/timer/mistakes
+- Statistics (by difficulty/mode)
+- Daily puzzle + streak
+- Achievements (starter set)
 
-This project is a **free entry game** within the Octile Universe.
+## Explicit Non-Goals (Still Not Doing)
 
-Its purpose is NOT to be a fully-fledged product, but to:
-- introduce logical, calm puzzle thinking
-- act as a low-friction gateway to Octile
-- respect player intelligence without aggressive engagement mechanics
+We avoid features that harm calm focus or create bloat without value:
 
-This means:
+- Aggressive monetization (forced ads, popups, urgency-driven funnels)
+- Over-celebratory / noisy feedback (confetti, flashing, loud animations)
+- Pressure mechanics beyond player choice (timer forced, unavoidable penalties)
+- Mandatory accounts / login requirements
+- Feature bloat without clear player value or UX justification
 
-✅ The game should feel complete enough to enjoy  
-❌ but intentionally NOT as deep, long-term, or feature-rich as Octile
+## Octile Universe UI / Tone DNA
 
-Any changes should reinforce Octile as the **primary destination for depth and replayability**.
-
-Any new UI text added must be reviewed against the “Calm, restrained tone” rule.
-Exclamation marks are generally discouraged across the Octile Universe.
-
-
-## Explicit Non-Goals (Do NOT add)
-
-The following are intentionally avoided in this project:
-
-- Daily / weekly challenges
-- Long-term progression systems
-- Meta unlocks or collectibles
-- Account systems or cross-session achievements
-- Competitive or time-pressure mechanics
-- Over-celebratory feedback or hype-driven UI
-
-If a feature would make this game feel like a standalone flagship product,
-it likely does NOT belong here.
-
-## UI / Tone Alignment (Octile Universe)
-
-All UI and copy changes must follow Octile Universe guidelines:
+Design philosophy: **calm, minimal, respectful**.
+Minimal does NOT mean featureless.
 
 Tone:
 - calm
@@ -69,15 +59,49 @@ Prefer:
 - reflective feedback
 - subtle encouragement
 
-## Cross-Promotion Rules (Free Game → Octile)
+Default feedback is subtle, not loud.
+Any promotional content must be optional, non-blocking, and only after success moments.
 
-This game may reference Octile only in a **soft, non-intrusive way**.
+## UI Architecture — Four Fixed Layers
 
-Rules:
-- Show at most ONE cross-promotion entry point
-- Only trigger after a satisfaction moment (e.g. game completion)
-- Never interrupt active gameplay
-- Treat Octile as a natural next step, not a call-to-action
+Every gameplay screen follows this skeleton. Status and tools never share a row.
+
+1. **HEADER** (status): Pause | Difficulty | Timer | Mistakes
+2. **BOARD** (focus): Grid + lightweight highlights only
+3. **KEYPAD** (input): 1–9 + Clear (long-press = clear notes)
+4. **TOOLS** (operations): Undo | Notes | Hint
+
+## Highlight System (Octile Rules)
+
+Only **1 primary + 2 auxiliary** highlights at a time. Everything else is silent.
+
+- Selected cell: border (primary accent), 1.5–2px solid
+- Row/Col/Block: flat tint, ~6% opacity
+- Same number: flat tint, ~3–4% opacity
+- Conflict: red border + red tint (only the wrong cell), ~6% + 2px border
+- Given cells: same background as editable, deeper text, uneditable (font-weight 700)
+
+Hard rules:
+- No radial gradients, no repeating stripes, no blur/glow effects.
+- Errors are **precise**, not loud: only mark the incorrect cell(s).
+
+## Interaction Rules (Mobile-first)
+
+- Tap cell: select
+- Tap number: place value (or toggle candidate if Notes active)
+- Long-press Clear (>=300ms): clear notes in selected cell
+- Hint works with or without selection:
+  - If selected empty cell: hint that cell
+  - Else: hint first empty cell (fallback)
+
+Optional (polish):
+- Long-press keypad number: Number Focus Mode (lock digit, quick fill)
+
+## Cross-Promotion Rules (Octile)
+
+Promotion must be **soft** and **post-satisfaction** only:
+- Allowed moments: after puzzle completion, in stats screen footer, or settings "More from Octile"
+- Not allowed: interrupting gameplay, blocking input, or penalizing refusal
 
 Example allowed phrasing:
 - "Looking for a deeper challenge?"
@@ -88,8 +112,6 @@ The goal is awareness, not conversion pressure.
 ## Architecture
 
 ### 3-Layer Dependency Injection Pattern
-
-Inspired by [octile/2048](https://github.com/octile/2048), the codebase uses a strict 3-layer architecture:
 
 ```
 core/          → Pure game logic (zero DOM/platform dependencies)
@@ -104,7 +126,6 @@ platforms/     → Platform implementations (web-dom, console)
 ### Core Game Flow
 
 ```javascript
-// app.js wires everything together:
 EventBus → Game(eventBus, storage) → Board
          ↓
     Platform(renderer, input)
@@ -114,37 +135,21 @@ EventBus → Game(eventBus, storage) → Board
 
 **Events:** Game logic emits events (`GAME_STARTED`, `BOARD_CHANGED`, `HIGHLIGHT_CHANGED`), platform code renders.
 
-### Data Models
+### Adding New Game Features
 
-**Enhanced Cell Model** (`core/Board.js`):
-```javascript
-{
-  value: 0-9,              // 0 = empty
-  given: boolean,          // immutable puzzle clue
-  notes: Set<1..9>,        // pencil marks
-  conflict: boolean,       // validation state
-  source: 'given'|'user'|'hint'|'solver'
-}
-```
+1. **Core logic** goes in `core/` (pure JS, no DOM)
+2. **Emit event** from Game.js: `this.eventBus.emit('feature:event', data)`
+3. **Add event constant** to `core/constants.js` if public event
+4. **Handle in app.js**: `eventBus.on('feature:event', (data) => { renderer.update() })`
+5. **Render in platform**: Add method to `platforms/web-dom/Renderer.js`
 
-**Highlight State** (data-driven, computed once per event):
-```javascript
-{
-  selected: cellId,        // currently selected cell
-  sameNumber: Set<id>,     // cells with same value
-  region: Set<id>,         // row/col/box of selected
-  conflicts: Set<id>       // cells in conflict
-}
-```
+## Engineering Principles
 
-### Key Technical Decisions
-
-1. **Data-Driven Rendering**: Compute highlight state once → render once (no DOM thrashing)
-2. **Two-Tier Validation**: 
-   - Incremental O(9) for live feedback during input
-   - Full scan O(81) for completion check
-3. **Uniqueness Check**: `countSolutions()` with early exit at 2nd solution
-4. **Auto-Save**: Every move saves to localStorage via `IStorage` interface
+- Preserve 3-layer architecture.
+- All user-visible behavior must be deterministic, testable, and persisted.
+- Auto-save must capture: grid, notes, timer state, mistakes, difficulty, undo/redo stacks.
+- Always use `.js` extension in ES module imports.
+- Never import platform code from core — use EventBus instead.
 
 ## Development Commands
 
@@ -170,35 +175,6 @@ npm run android:bundle   # Build release AAB for Play Store
 
 **APK Output:** `android/app/build/outputs/apk/debug/app-debug.apk`
 
-### Testing Utilities
-```bash
-node test-generator.mjs  # Test puzzle generation
-node test-solver.mjs     # Test solver algorithm
-node test-save-resume.mjs # Test localStorage persistence
-```
-
-## Important Patterns
-
-### Adding New Game Features
-
-1. **Core logic** goes in `core/` (pure JS, no DOM)
-2. **Emit event** from Game.js: `this.eventBus.emit('feature:event', data)`
-3. **Add event constant** to `core/constants.js` if public event
-4. **Handle in app.js**: `eventBus.on('feature:event', (data) => { renderer.update() })`
-5. **Render in platform**: Add method to `platforms/web-dom/Renderer.js`
-
-### Adding New Platform Support
-
-To add a new platform (e.g., iOS, desktop app):
-
-1. Create `platforms/[platform]/` directory
-2. Implement interfaces:
-   - `IRenderer.js` → rendering contract
-   - `IInput.js` → input handling contract  
-   - `IStorage.js` → persistence contract
-3. Wire in entry point (like `app.js` for web)
-4. Core logic requires zero changes
-
 ## Project Structure
 
 ```
@@ -213,7 +189,8 @@ core/
 ├── Board.js             # Cell model, validation, region queries
 ├── Game.js              # Lifecycle, undo/redo, notes mode, save/resume
 ├── Solver.js            # Backtracking solver + hint system
-└── Generator.js         # Puzzle generation with uniqueness check
+├── Generator.js         # Puzzle generation with uniqueness check
+└── Settings.js          # User preferences (persisted)
 
 platform/
 ├── IRenderer.js         # Rendering interface contract
@@ -226,9 +203,27 @@ platforms/web-dom/
 ├── Input.js             # Mouse, touch, keyboard, long-press
 ├── Storage.js           # localStorage wrapper
 └── styles.css           # Responsive grid, animations
-
-platforms/console/       # Terminal-based implementation
 ```
+
+## Source of Truth
+
+- Roadmap and phases live in `PLAN.md`.
+- Design tokens and UI specs live in `DESIGN.md`.
+- CLAUDE.md is the stable behavioral spec: positioning, non-goals, UI rules, interaction rules.
+
+## Performance Targets
+
+- Puzzle generation: <10ms (currently ~4ms avg)
+- Uniqueness validation: Early exit at 2nd solution
+- Rendering: Data-driven (single highlight computation per event)
+- Mobile: Touch targets ≥48×48px
+
+## Version Management
+
+Before releasing:
+1. Bump `android/app/build.gradle` → `versionCode` (integer) and `versionName`
+2. Bump `package.json` → `"version"`
+3. Create git tag: `git tag v1.2.0 && git push --tags`
 
 ## Deployment
 
@@ -244,63 +239,3 @@ git push origin main
 git tag v1.0.0
 git push --tags
 ```
-
-### Manual Deployments
-
-See `DEPLOY.md` for:
-- Android keystore setup for Play Store
-- GitHub secrets configuration for CI
-- Store listing requirements
-
-## Testing Strategy
-
-### Current State
-- No unit test files exist yet (test command references `core/**/*.test.js`)
-- Manual testing via `test-*.mjs` scripts
-- Integration testing via `test-*.html` files
-
-### When Adding Tests
-- Use Node.js native test runner (`node --test`)
-- Place test files alongside source: `core/Game.test.js`
-- Test core logic only (pure functions, no DOM)
-- Platform code tested via manual QA
-
-## Common Gotchas
-
-1. **Import Paths**: Always use `.js` extension in ES module imports
-   ```javascript
-   import { Game } from './core/Game.js';  // ✅
-   import { Game } from './core/Game';     // ❌
-   ```
-
-2. **Platform Boundaries**: Never import platform code from core
-   ```javascript
-   // In core/Game.js:
-   import { WebRenderer } from '../platforms/web-dom/Renderer.js';  // ❌
-   // Use EventBus instead ✅
-   ```
-
-3. **Auto-Save**: Game auto-saves after every move to `localStorage['sudoku-save']`
-   - Hydrates on page load via `game.loadSavedGame()`
-   - Cleared on completion or explicit restart
-
-4. **Notes Mode**: 
-   - Toggle via button OR long-press (300ms) on any cell
-   - In notes mode, number input toggles notes
-   - Setting a value clears that cell's notes
-
-5. **Dev Server**: Use `npm run dev` (not raw `python -m http.server`) to ensure build runs first
-
-## Performance Targets
-
-- Puzzle generation: <10ms (currently ~4ms avg)
-- Uniqueness validation: Early exit at 2nd solution
-- Rendering: Data-driven (single highlight computation per event)
-- Mobile: Touch targets ≥48×48px
-
-## Version Management
-
-Before releasing:
-1. Bump `android/app/build.gradle` → `versionCode` (integer) and `versionName`
-2. Bump `package.json` → `"version"`
-3. Create git tag: `git tag v1.2.0 && git push --tags`
