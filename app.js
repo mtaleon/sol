@@ -281,6 +281,32 @@ document.getElementById('settings-done').addEventListener('click', () => {
   renderer.hideSettings();
 });
 
+// ===== HELP MODAL =====
+
+const helpModal = document.getElementById('help-modal');
+
+document.getElementById('pause-help-btn').addEventListener('click', () => {
+  renderer.applyLanguage();
+  helpModal.classList.add('visible');
+});
+
+document.getElementById('help-done').addEventListener('click', () => {
+  helpModal.classList.remove('visible');
+});
+
+// ===== ABOUT MODAL =====
+
+const aboutModal = document.getElementById('about-modal');
+
+document.getElementById('pause-about-btn').addEventListener('click', () => {
+  renderer.applyLanguage();
+  aboutModal.classList.add('visible');
+});
+
+document.getElementById('about-done').addEventListener('click', () => {
+  aboutModal.classList.remove('visible');
+});
+
 // ===== DIFFICULTY MODAL =====
 
 document.getElementById('close-difficulty-modal').addEventListener('click', hideDifficultyModal);

@@ -69,6 +69,47 @@
       <button id="pause-restart-btn" data-i18n="pause.restart">Restart</button>
       <button id="pause-new-game-btn" data-i18n="pause.newGame">New Game</button>
       <button id="pause-settings-btn" data-i18n="pause.settings">Settings</button>
+      <button id="pause-help-btn" data-i18n="pause.help">How to Play</button>
+      <button id="pause-about-btn" data-i18n="pause.about">About</button>
+    </div>
+  </div>
+
+  <!-- About Modal -->
+  <div id="about-modal">
+    <div class="modal-content">
+      <h2 data-i18n="about.title">About</h2>
+      <div class="about-body">
+        <p class="about-app-name" data-i18n="about.name">Sudoku</p>
+        <p class="about-version" data-i18n="about.version" data-i18n-param-version="1.0.0">Version 1.0.0</p>
+        <p class="about-byline" data-i18n="about.byOctile">An Octile Universe game</p>
+        <div class="about-links">
+          <a href="mailto:octileapp@googlegroups.com" class="about-link"><span data-i18n="about.contact">Contact</span></a>
+          <a href="privacy.html" target="_blank" class="about-link about-link-privacy"><span data-i18n="about.privacy">Privacy Policy</span></a>
+        </div>
+      </div>
+      <button id="about-done" class="settings-done" data-i18n="about.done">Done</button>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="help-modal">
+    <div class="modal-content">
+      <h2 data-i18n="help.title">How to Play</h2>
+      <div class="help-body">
+        <p class="help-rule" data-i18n="help.rule">Fill every row, column, and 3×3 box with the digits 1–9. Each digit appears exactly once in each region.</p>
+        <h3 data-i18n="help.controls">Controls</h3>
+        <ul class="help-list">
+          <li data-i18n="help.tap">Tap a cell to select it, then tap a number to place it.</li>
+          <li data-i18n="help.notes">Use Notes to mark possible candidates in empty cells.</li>
+          <li data-i18n="help.undo">Undo reverses your last action. Long-press Undo to redo.</li>
+          <li data-i18n="help.clear">Clear removes the value. Long-press Clear to erase notes.</li>
+          <li data-i18n="help.hint">Hint fills the selected cell with the correct value.</li>
+          <li data-i18n="help.pause">Pause the game anytime from the header. Your progress is auto-saved.</li>
+        </ul>
+      </div>
+      <p class="help-contact"><span data-i18n="help.contact">Contact: </span><a href="mailto:octileapp@googlegroups.com">octileapp@googlegroups.com</a></p>
+      <p class="help-contact"><a href="privacy.html" target="_blank" data-i18n="help.privacy">Privacy Policy</a></p>
+      <button id="help-done" class="settings-done" data-i18n="help.done">Got it</button>
     </div>
   </div>
 
