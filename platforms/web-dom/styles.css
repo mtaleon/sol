@@ -31,6 +31,9 @@
   --space-md: 12px;
   --space-lg: 16px;
   --space-xl: 24px;
+
+  /* Ad safe area (for native banner overlay) */
+  --ad-safe-bottom: 0px; /* Set by AdMobPlatform.showBanner() to 50px */
 }
 
 * {
@@ -48,6 +51,9 @@ body {
   padding: 20px;
   min-height: 100vh;
   color: var(--color-text);
+
+  /* Add dynamic bottom padding when banner shows (native overlay) */
+  padding-bottom: calc(20px + var(--ad-safe-bottom) + env(safe-area-inset-bottom, 0px));
 }
 
 /* ===== LAYER 1: HEADER (status) ===== */
@@ -916,6 +922,7 @@ body.notes-mode {
 @media (max-width: 767px) {
   body {
     padding: 10px;
+    padding-bottom: calc(10px + var(--ad-safe-bottom) + env(safe-area-inset-bottom, 0px));
   }
 
   .modal {

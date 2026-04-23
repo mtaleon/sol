@@ -8,6 +8,7 @@ import { WebInput } from './platforms/web-dom/Input.js';
 import { WebStorage } from './platforms/web-dom/Storage.js';
 import { Generator } from './core/Generator.js';
 import { t, setLanguage } from './core/i18n.js';
+import { AdMobManager } from './core/AdMobManager.js';
 
 // Toast notification helper
 function showToast(message, type = 'info') {
@@ -32,7 +33,7 @@ function showTipOnce(tipId, message) {
 
 // Initialize platform
 const eventBus = new EventBus();
-const renderer = new WebRenderer();
+const renderer = new WebRenderer(eventBus);
 const input = new WebInput();
 const storage = new WebStorage();
 const settings = new Settings(storage);
@@ -111,7 +112,14 @@ eventBus.on(EVENTS.MISTAKE_MADE, ({ mistakes }) => {
   renderer.updateMistakes(mistakes, settings.get('mistakeLimit'));
 });
 
-eventBus.on(EVENTS.GAME_COMPLETED, (data) => {
+eventBus.on(EVENTS.GAME_COMPLETED, async (data) => {
+  // Wait for interstitial check (max 5 seconds, usually 2-3s)
+  // This MUST complete before showing completion modal to prevent overlap
+  if (window.adMobManager) {
+    await window.adMobManager.onGameCompleted();
+  }
+
+  // Now show completion modal (no overlap)
   renderer.showCompletionModal(data);
 });
 
@@ -341,6 +349,26 @@ if (!game.loadSavedGame()) {
 applySettingsToUI();
 renderer.applyLanguage();
 renderer.updateDifficulty(game.difficulty);
+
+// ===== AdMob Initialization (Background) =====
+const adMobManager = new AdMobManager(eventBus, storage);
+
+async function initializeAdMob() {
+  try {
+    const enabled = await adMobManager.initialize();
+    if (enabled) {
+      console.log('AdMob initialized');
+    }
+  } catch (err) {
+    console.warn('AdMob initialization error (non-critical)', err);
+  }
+}
+
+// Call after game loads and UI is rendered (background, non-blocking)
+initializeAdMob();
+
+// Expose for GAME_COMPLETED handler access
+window.adMobManager = adMobManager;
 
 // Debug access
 window.game = game;

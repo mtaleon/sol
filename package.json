@@ -8,6 +8,7 @@
     "dev": "npm run build && python3 -m http.server 8000 --directory www",
     "play": "node platforms/console/index.js",
     "test": "node --test core/**/*.test.js",
+    "test:admob": "node test-admob.js",
     "android:prepare": "npm run build && npx cap sync android",
     "android:build": "npm run android:prepare && cd android && ./gradlew assembleDebug",
     "android:release": "npm run android:prepare && cd android && ./gradlew assembleRelease",
@@ -23,6 +24,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
     "@capacitor/android": "^8.3.1",
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1"

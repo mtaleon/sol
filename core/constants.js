@@ -19,7 +19,10 @@ export const EVENTS = {
   GAME_OVER: 'game:over',
   GAME_PAUSED: 'game:paused',
   GAME_RESUMED: 'game:resumed',
-  SETTINGS_CHANGED: 'settings:changed'
+  SETTINGS_CHANGED: 'settings:changed',
+  // UI modal events (for AdMob banner hiding)
+  UI_MODAL_OPENED: 'ui:modal-opened',
+  UI_MODAL_CLOSED: 'ui:modal-closed'
 };
 
 // Hardcoded puzzle for Sprint 1 (valid Sudoku)

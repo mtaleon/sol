@@ -1,12 +1,13 @@
 import { IRenderer } from '../../platform/IRenderer.js';
-import { SIZE } from '../../core/constants.js';
+import { SIZE, EVENTS } from '../../core/constants.js';
 import { t } from '../../core/i18n.js';
 
 const PROMO_URL = 'https://play.google.com/store/apps/details?id=com.octile.app';
 
 export class WebRenderer extends IRenderer {
-  constructor() {
+  constructor(eventBus = null) {
     super();
+    this.eventBus = eventBus; // For emitting UI modal events
     this.gridElement = document.getElementById('sudoku-grid');
     this.timerElement = document.getElementById('timer');
     this.mistakesElement = document.getElementById('mistakes');
@@ -171,10 +172,20 @@ export class WebRenderer extends IRenderer {
 
   showPauseOverlay() {
     this.pauseOverlay.classList.add('visible');
+
+    // Emit event (AdMobManager listens and hides banner)
+    if (this.eventBus) {
+      this.eventBus.emit(EVENTS.UI_MODAL_OPENED);
+    }
   }
 
   hidePauseOverlay() {
     this.pauseOverlay.classList.remove('visible');
+
+    // Emit event (AdMobManager listens and shows banner)
+    if (this.eventBus) {
+      this.eventBus.emit(EVENTS.UI_MODAL_CLOSED);
+    }
   }
 
   // i18n: apply translations to all data-i18n tagged elements
@@ -273,10 +284,20 @@ export class WebRenderer extends IRenderer {
     });
 
     modal.classList.add('visible');
+
+    // Emit event (AdMobManager listens and hides banner)
+    if (this.eventBus) {
+      this.eventBus.emit(EVENTS.UI_MODAL_OPENED);
+    }
   }
 
   hideSettings() {
     document.getElementById('settings-modal').classList.remove('visible');
+
+    // Emit event (AdMobManager listens and shows banner)
+    if (this.eventBus) {
+      this.eventBus.emit(EVENTS.UI_MODAL_CLOSED);
+    }
   }
 
   _createSettingRow(label) {
@@ -292,6 +313,11 @@ export class WebRenderer extends IRenderer {
   // Completion modal
   showCompletionModal(data) {
     this._hideModal();
+
+    // Emit event (AdMobManager listens and hides banner)
+    if (this.eventBus) {
+      this.eventBus.emit(EVENTS.UI_MODAL_OPENED);
+    }
 
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -365,6 +391,11 @@ export class WebRenderer extends IRenderer {
   showGameOverModal(data) {
     this._hideModal();
 
+    // Emit event (AdMobManager listens and hides banner)
+    if (this.eventBus) {
+      this.eventBus.emit(EVENTS.UI_MODAL_OPENED);
+    }
+
     const modal = document.createElement('div');
     modal.className = 'modal';
 
@@ -417,6 +448,11 @@ export class WebRenderer extends IRenderer {
     setTimeout(() => {
       modal.remove();
       if (this.modalElement === modal) this.modalElement = null;
+
+      // Emit event (AdMobManager listens and shows banner)
+      if (this.eventBus) {
+        this.eventBus.emit(EVENTS.UI_MODAL_CLOSED);
+      }
     }, 300);
   }
 
@@ -424,6 +460,11 @@ export class WebRenderer extends IRenderer {
     if (this.modalElement) {
       this.modalElement.remove();
       this.modalElement = null;
+
+      // Emit event when programmatically hiding modal
+      if (this.eventBus) {
+        this.eventBus.emit(EVENTS.UI_MODAL_CLOSED);
+      }
     }
   }
 
