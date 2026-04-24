@@ -1,0 +1,8 @@
+{
+  "otaVersionCode": 1,
+  "otaVersionName": "2026.04.22-1",
+  "minAndroidVersionCode": 1,
+  "playStoreUrl": "https://play.google.com/store/apps/details?id=com.octile.sudoku",
+  "bundleUrl": "https://sol.octile.eu.cc/ota/bundle-v1.zip",
+  "bundleHash": "sha256:c2f2e6869e7f80ed4bed6ee126d4ff0e32dacc5c28b10a17415d09634152234e"
+}

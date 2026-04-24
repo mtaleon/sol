@@ -9,6 +9,8 @@ import { WebStorage } from './platforms/web-dom/Storage.js';
 import { Generator } from './core/Generator.js';
 import { t, setLanguage } from './core/i18n.js';
 import { AdMobManager } from './core/AdMobManager.js';
+import { getBrowserUUID } from './core/uuid.js';
+import { submitScore, flushQueue, applyConfig } from './core/api.js';
 
 // Toast notification helper
 function showToast(message, type = 'info') {
@@ -44,6 +46,45 @@ const game = new Game(eventBus, storage, settings);
 
 // Initialize i18n from saved setting
 setLanguage(settings.get('language') || 'en');
+
+// Load app config
+let _appConfig = { features: {} };
+try {
+  const res = await fetch('config.json');
+  if (res.ok) {
+    _appConfig = await res.json();
+    applyConfig(_appConfig);
+  }
+} catch (e) { /* offline or missing — use defaults */ }
+
+// Load OTA version (Android loader writes localStorage, web reads version.json)
+let _otaVersionCode = null;
+const _storedOta = localStorage.getItem('sudoku_ota_version');
+if (_storedOta) {
+  _otaVersionCode = parseInt(_storedOta, 10);
+} else {
+  try {
+    const vRes = await fetch('version.json');
+    if (vRes.ok) {
+      const vData = await vRes.json();
+      _otaVersionCode = vData.otaVersionCode || null;
+    }
+  } catch (e) { /* ignore */ }
+}
+
+function _getOtaVersion() {
+  return _otaVersionCode;
+}
+
+function _getPlatform() {
+  if (window.Capacitor?.isNativePlatform?.()) return 'android';
+  if (navigator.userAgent.includes('wv')) return 'android';
+  return 'web';
+}
+
+// Flush offline score queue on startup + reconnect
+flushQueue();
+window.addEventListener('online', () => flushQueue());
 
 // Difficulty modal helpers
 const difficultyModal = document.getElementById('difficulty-modal');
@@ -121,6 +162,19 @@ eventBus.on(EVENTS.GAME_COMPLETED, async (data) => {
 
   // Now show completion modal (no overlap)
   renderer.showCompletionModal(data);
+
+  submitScore({
+    difficulty: data.difficulty,
+    resolve_time: data.elapsed,
+    moves: data.moves,
+    mistakes: data.mistakes,
+    hints_used: data.hintsUsed,
+    clues: game.originalPuzzle ? game.originalPuzzle.filter(v => v !== 0).length : null,
+    browser_uuid: getBrowserUUID(),
+    timestamp_utc: new Date().toISOString(),
+    ota_version_code: _getOtaVersion(),
+    platform: _getPlatform(),
+  });
 });
 
 eventBus.on(EVENTS.GAME_OVER, (data) => {

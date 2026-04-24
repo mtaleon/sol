@@ -1,0 +1,12 @@
+{
+  "features": {
+    "score_submission": true,
+    "scoreboard": false,
+    "daily_challenge": false,
+    "achievements": false
+  },
+  "workerUrl": "https://api.octile.eu.cc",
+  "siteUrl": "https://sol.octile.eu.cc/",
+  "scoreQueueRetryMs": 35000,
+  "debug": false
+}

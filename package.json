@@ -4,7 +4,8 @@
   "type": "module",
   "description": "Mobile-first Sudoku PWA with Android support",
   "scripts": {
-    "build": "mkdir -p www && cp index.html app.js privacy.html favicon.svg icon-*.png manifest.json sw.js www/ 2>/dev/null || true && cp -r core platform platforms www/",
+    "build": "mkdir -p www && cp index.html app.js privacy.html config.json version.json favicon.svg icon-*.png manifest.json sw.js www/ 2>/dev/null || true && cp -r core platform platforms www/",
+    "ota": "bash scripts/make-ota-bundle.sh",
     "dev": "npm run build && python3 -m http.server 8000 --directory www",
     "play": "node platforms/console/index.js",
     "test": "node --test core/**/*.test.js",
