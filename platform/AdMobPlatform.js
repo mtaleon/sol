@@ -7,8 +7,14 @@
  * - All errors fail silently, never block app
  */
 
-import { Capacitor } from '@capacitor/core';
-import { AdMob, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
+// Browser fallback: Use window.Capacitor if available (native), otherwise mock for web
+const Capacitor = window.Capacitor || {
+  isNativePlatform: () => false,
+  getPlatform: () => 'web'
+};
+
+// Dynamic import: AdMob modules only loaded in native environment
+let AdMob, BannerAdSize, BannerAdPosition;
 
 export class AdMobPlatform {
   constructor(adUnitIds) {
@@ -35,6 +41,12 @@ export class AdMobPlatform {
     if (!this.adsEnabled) return false;
 
     try {
+      // Dynamically import AdMob modules (only in native environment)
+      const admobModule = await import('@capacitor-community/admob');
+      AdMob = admobModule.AdMob;
+      BannerAdSize = admobModule.BannerAdSize;
+      BannerAdPosition = admobModule.BannerAdPosition;
+
       // Step 1: Request consent info update (EU/EEA/UK users)
       // Uses @capacitor-community/admob's built-in consent methods
       // ✅ Following UMP guidance: update consent status on every app session

@@ -14,10 +14,12 @@
  * ✅ STABILITY FIX 2: Track game_completed metrics
  */
 
-import { AdMob } from '@capacitor-community/admob';
 import { AdMobPlatform } from '../platform/AdMobPlatform.js';
 import { SessionManager } from './SessionManager.js';
 import { EVENTS } from './constants.js';
+
+// Dynamic import: AdMob only loaded when needed in native environment
+let AdMob;
 
 // Ad Unit Configuration
 const TEST_IDS = {
@@ -154,6 +156,17 @@ export class AdMobManager {
    */
   async _showInterstitialWithTimeout() {
     if (!this.adsEnabled) return;
+
+    // Dynamically import AdMob when needed
+    if (!AdMob) {
+      try {
+        const admobModule = await import('@capacitor-community/admob');
+        AdMob = admobModule.AdMob;
+      } catch (error) {
+        console.warn('AdMob module not available:', error);
+        return;
+      }
+    }
 
     return new Promise((resolve) => {
       // 5-second timeout (fail-safe)
