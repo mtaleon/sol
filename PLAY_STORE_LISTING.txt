@@ -1,0 +1,265 @@
+# PLAY STORE LISTING TEXT
+# Copy-paste ready for Google Play Console
+
+================================================================================
+APP TITLE (50 char limit)
+================================================================================
+
+Sudoku — Octile Universe
+
+
+================================================================================
+SHORT DESCRIPTION (80 char limit)
+================================================================================
+
+Clean Sudoku for focused play. Three difficulties, notes, hints, offline.
+
+Alternative (more Octile tone):
+Calm Sudoku for focused play. Three difficulties, notes, hints, offline.
+
+
+================================================================================
+FULL DESCRIPTION (4000 char limit, currently ~900 chars)
+================================================================================
+
+A thoughtful Sudoku experience for mobile.
+
+Three difficulty levels with guaranteed unique solutions. Notes mode for pencil marks. Undo and redo. Hints when needed. Configurable mistake limits. Timer that can be hidden. Auto-save and resume. Works completely offline.
+
+Design
+Clean interface optimized for extended sessions. No clutter, no pressure. Part of the Octile Universe of focused puzzle games.
+
+Features
+• Easy, Medium, and Hard difficulties
+• Notes (pencil marks) with quick toggle
+• Undo/Redo system (up to 200 actions)
+• Hint and auto-solve options
+• Mistake tracking (Off / 3 / Unlimited)
+• Timer display (optional)
+• Auto-save preserves progress
+• Pause and resume anytime
+• Offline play after first launch
+• English and Traditional Chinese
+• Conflict detection with visual feedback
+• Smart number pad (auto-disables completed digits)
+
+Privacy
+All game data is stored locally on your device. No account required.
+Ads are served by Google AdMob and may appear after puzzle completion.
+See the in-app Privacy Policy for details.
+
+Support
+Questions or feedback: octile.team@gmail.com
+
+
+================================================================================
+WHAT'S NEW (500 char limit for version updates)
+================================================================================
+
+Version 1.0.0 — Initial Release
+
+Core Sudoku with three difficulties. Notes mode for pencil marks. Undo/redo. Hints. Configurable mistake limits. Timer. Auto-save. Offline support. English and Traditional Chinese.
+
+No daily puzzles, stats, or achievements in this version — focused on core gameplay quality first.
+
+Feedback: octile.team@gmail.com
+
+
+================================================================================
+CATEGORY
+================================================================================
+
+Primary: Games > Puzzle
+Secondary: Board
+
+
+================================================================================
+CONTENT RATING (complete questionnaire)
+================================================================================
+
+- Violence: None
+- Sexual Content: None
+- Language: None
+- Controlled Substances: None
+- Gambling: None
+- User Interaction: None (no chat, no user-generated content)
+- Shares Location: No
+- Purchases Digital Goods: No (ads only, if implemented)
+
+Expected Rating: PEGI 3 / ESRB Everyone / USK 0
+
+
+================================================================================
+PRIVACY POLICY URL
+================================================================================
+
+https://octile.github.io/sol/privacy.html
+
+(Or wherever you deploy privacy.html)
+
+
+================================================================================
+TAGS / KEYWORDS (for ASO - not all stores use these)
+================================================================================
+
+sudoku, puzzle, logic, brain game, offline, pencil marks, notes, hints, number puzzle, classic sudoku, calm, zen, octile, no pressure, focused play
+
+
+================================================================================
+PROMOTIONAL TEXT (170 char, optional, shown above description)
+================================================================================
+
+Part of the Octile Universe. A clean Sudoku for focused play. Three difficulties, notes, hints, offline support. No account needed.
+
+
+================================================================================
+DEVELOPER NAME
+================================================================================
+
+Octile
+
+
+================================================================================
+DEVELOPER EMAIL
+================================================================================
+
+octile.team@gmail.com
+
+
+================================================================================
+DEVELOPER WEBSITE
+================================================================================
+
+https://github.com/octile
+
+
+================================================================================
+APP ACCESS (for Google Play Console)
+================================================================================
+
+□ All functionality available without restrictions
+☑ Instructions to access restricted features: None (all features accessible)
+
+
+================================================================================
+ADS DECLARATION
+================================================================================
+
+☑ Yes, this app contains ads
+Ad provider: Google AdMob
+Ad format: Interstitial (shown after puzzle completion)
+
+
+================================================================================
+TARGET AUDIENCE
+================================================================================
+
+Primary: 18-34 years
+Secondary: 35-54 years
+
+Target: Puzzle enthusiasts, logic game players, people seeking calm mobile entertainment
+
+
+================================================================================
+APP PERMISSIONS (declare in console)
+================================================================================
+
+- INTERNET: For ad serving and optional score submission
+- ACCESS_NETWORK_STATE: Check connectivity for ad loading
+
+No sensitive permissions required (camera, location, contacts, storage, etc.)
+
+
+================================================================================
+STORE LISTING ASSETS NEEDED
+================================================================================
+
+1. App Icon: 512x512 PNG (32-bit with alpha)
+2. Feature Graphic: 1024x500 PNG
+3. Screenshots:
+   - Phone: Minimum 2, up to 8 (16:9 or 9:16 recommended)
+   - Tablet (optional): 7" and 10" screenshots
+4. Promotional Video (optional): YouTube URL
+
+Screenshot suggestions:
+- Main game board with notes visible
+- Settings screen showing options
+- Completion screen (calm, non-celebratory)
+- Help/How to Play screen
+- Pause overlay
+- Different difficulty levels
+
+
+================================================================================
+RELEASE TRACK (for console)
+================================================================================
+
+☑ Production
+□ Open testing
+□ Closed testing
+□ Internal testing
+
+
+================================================================================
+COUNTRIES/REGIONS
+================================================================================
+
+All countries (or select specific regions based on language support)
+
+Recommended initial launch:
+- English-speaking: US, UK, CA, AU, NZ, SG
+- Traditional Chinese: TW, HK, MO
+
+
+================================================================================
+PRICING
+================================================================================
+
+Free (with ads)
+
+
+================================================================================
+IN-APP PRODUCTS
+================================================================================
+
+None in v1.0.0
+
+(Future consideration: Remove Ads IAP)
+
+
+================================================================================
+CONTACT FOR USERS
+================================================================================
+
+Email: octile.team@gmail.com
+Website: https://github.com/octile
+
+
+================================================================================
+IMPORTANT NOTES FOR SUBMISSION
+================================================================================
+
+1. Version code in build.gradle must be unique and incremented for each upload
+2. APK/AAB must be signed with production keystore
+3. Privacy policy must be accessible and match app behavior
+4. All store listing content must follow Play Store policies
+5. Screenshots must be actual app screenshots (no mockups)
+6. Feature graphic must not have rounded corners (store adds them)
+7. Test ad serving before production release
+
+================================================================================
+FINAL PRE-SUBMISSION CHECKLIST (5 minutes before submit)
+================================================================================
+
+☐ versionCode incremented in android/app/build.gradle
+☐ android.permission.INTERNET declared in AndroidManifest.xml
+☐ android.permission.ACCESS_NETWORK_STATE declared in AndroidManifest.xml
+☐ Privacy policy URL is accessible (test in browser)
+☐ All screenshots are actual device screenshots (no mockups)
+☐ AdMob test ad IDs replaced with production IDs (for release build)
+☐ Release AAB signed with production keystore
+☐ Store listing text matches actual app behavior
+☐ App tested on release build (not debug)
+☐ No console errors or crashes in release build
+
+================================================================================

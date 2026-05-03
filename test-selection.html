@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Selection Test</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+.demo { margin: 20px 0; padding: 20px; border: 2px solid #ccc; }
+.status { font-size: 18px; font-weight: bold; color: #5294e2; margin: 10px 0; }
+button { margin: 5px; padding: 10px 20px; font-size: 16px; }
+</style>
+</head>
+<body>
+<h1>測試選擇模式</h1>
+
+<div class="demo">
+<h2>當前狀態：</h2>
+<div class="status" id="status">未選擇</div>
+</div>
+
+<div class="demo">
+<h2>1. 點擊數字按鈕（應該只顯示細圈）</h2>
+<button onclick="selectNumber(9)">數字按鈕 9</button>
+<p>預期：selectedCell = null, selectedNumber = 9</p>
+</div>
+
+<div class="demo">
+<h2>2. 點擊格子（會顯示region）</h2>
+<button onclick="selectCell()">點擊格子</button>
+<p>預期：selectedCell = 80, selectedNumber = null</p>
+</div>
+
+<script type="module">
+import { EventBus } from './core/events.js';
+import { Game } from './core/Game.js';
+import { DEMO_PUZZLE } from './core/constants.js';
+import { WebStorage } from './platforms/web-dom/Storage.js';
+
+const eventBus = new EventBus();
+const storage = new WebStorage();
+const game = new Game(eventBus, storage);
+game.startGame(DEMO_PUZZLE);
+
+window.selectNumber = (num) => {
+  game.selectNumber(num);
+  document.getElementById('status').textContent = 
+    `selectedCell = ${game.selectedCell}, selectedNumber = ${game.selectedNumber}`;
+};
+
+window.selectCell = () => {
+  game.selectCell(8, 8); // 右下角
+  document.getElementById('status').textContent = 
+    `selectedCell = ${game.selectedCell}, selectedNumber = ${game.selectedNumber}`;
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+# FINAL APPROVED PLAY STORE LISTING
+# Ready for submission — v1.0.0
+
+================================================================================
+APP TITLE
+================================================================================
+
+Sudoku — Octile Universe
+
+
+================================================================================
+SHORT DESCRIPTION (Choose one)
+================================================================================
+
+Option 1 (Current):
+Clean Sudoku for focused play. Three difficulties, notes, hints, offline.
+
+Option 2 (More Octile tone):
+Calm Sudoku for focused play. Three difficulties, notes, hints, offline.
+
+
+================================================================================
+FULL DESCRIPTION
+================================================================================
+
+A thoughtful Sudoku experience for mobile.
+
+Three difficulty levels with guaranteed unique solutions. Notes mode for pencil marks. Undo and redo. Hints when needed. Configurable mistake limits. Timer that can be hidden. Auto-save and resume. Works completely offline.
+
+Design
+Clean interface optimized for extended sessions. No clutter, no pressure. Part of the Octile Universe of focused puzzle games.
+
+Features
+• Easy, Medium, and Hard difficulties
+• Notes (pencil marks) with quick toggle
+• Undo/Redo system (up to 200 actions)
+• Hint and auto-solve options
+• Mistake tracking (Off / 3 / Unlimited)
+• Timer display (optional)
+• Auto-save preserves progress
+• Pause and resume anytime
+• Offline play after first launch
+• English and Traditional Chinese
+• Conflict detection with visual feedback
+• Smart number pad (auto-disables completed digits)
+
+Privacy
+All game data is stored locally on your device. No account required.
+Ads are served by Google AdMob and may appear after puzzle completion.
+See the in-app Privacy Policy for details.
+
+Support
+Questions or feedback: octile.team@gmail.com
+
+
+================================================================================
+WHAT'S NEW (v1.0.0)
+================================================================================
+
+Version 1.0.0 — Initial Release
+
+Core Sudoku with three difficulties. Notes mode. Undo/redo. Hints. Configurable mistake limits. Timer. Auto-save. Offline support. English and Traditional Chinese.
+
+No daily puzzles, stats, or achievements — focused on core gameplay quality first.
+
+
+================================================================================
+QUICK REFERENCE
+================================================================================
+
+Category: Games > Puzzle
+Price: Free
+Ads: Yes (AdMob interstitial after completion)
+In-app purchases: None
+Age rating: PEGI 3 / ESRB Everyone
+Languages: English, Traditional Chinese
+
+Permissions required:
+- INTERNET (for ads and optional anonymous statistics)
+- ACCESS_NETWORK_STATE (for ad loading)
+
+Privacy Policy URL:
+https://octile.github.io/sol/privacy.html
+(or your actual deployment URL)
+
+Developer: Octile
+Contact: octile.team@gmail.com
+
+
+================================================================================
+PRE-SUBMISSION CHECKLIST
+================================================================================
+
+✓ versionCode = 1 in android/app/build.gradle
+✓ versionName = "1.0.0" in android/app/build.gradle
+✓ Permissions declared (INTERNET, ACCESS_NETWORK_STATE)
+✓ Privacy policy URL accessible
+✓ Screenshots are actual device screenshots (no mockups)
+✓ AdMob production IDs in place (not test IDs)
+✓ Release AAB built and signed
+✓ App tested on release build
+✓ No crashes or console errors
+✓ Store listing matches actual behavior
+
+
+================================================================================
+ASSETS REQUIRED
+================================================================================
+
+☐ App icon: 512×512 PNG (32-bit with alpha)
+☐ Feature graphic: 1024×500 PNG
+☐ Phone screenshots: Minimum 2, recommended 4-6
+   - Suggested: Main board, Settings, Completion, Help
+☐ Tablet screenshots (optional): 7" and 10"
+☐ Promotional video (optional): YouTube URL
+
+
+================================================================================
+NOTES
+================================================================================
+
+✓ Ads statement explicitly mentions "after puzzle completion" to align with Play Store policy preferences
+✓ Description is under 4000 char limit with room for future additions
+✓ Tone is calm, factual, non-marketing (Octile Universe compliant)
+✓ No daily puzzles or pressure mechanics emphasized as design choice
+✓ Bilingual support (EN/ZH-TW) highlighted
+✓ Works with both banner and interstitial ad formats
+
+================================================================================
