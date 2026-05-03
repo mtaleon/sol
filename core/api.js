@@ -1,7 +1,7 @@
 import { getBrowserUUID, captureCookieUUID } from './uuid.js';
 
 let API_URL = 'https://api.octile.eu.cc';
-let SCORE_URL = API_URL + '/sudoku/score';
+let SCORE_URL = API_URL + '/scores';  // Unified endpoint
 let _scoreEnabled = true;
 
 const QUEUE_KEY = 'sudoku_score_queue_v1';
@@ -11,7 +11,7 @@ const FETCH_TIMEOUT_MS = 8000;
 export function applyConfig(config) {
   if (config.workerUrl) {
     API_URL = config.workerUrl;
-    SCORE_URL = API_URL + '/sudoku/score';
+    SCORE_URL = API_URL + '/scores';  // Unified endpoint
   }
   if (config.features?.score_submission === false) {
     _scoreEnabled = false;
@@ -21,20 +21,38 @@ export function applyConfig(config) {
 export async function submitScore(entry) {
   if (!_scoreEnabled) return;
 
-  entry.submission_id = _generateUUID();
+  // Transform to unified format
+  const payload = {
+    game_id: 'sudoku',
+    browser_uuid: entry.browser_uuid || getBrowserUUID(),
+    submission_id: entry.submission_id || _generateUUID(),
+    score_value: entry.resolve_time,  // Primary metric (solve time in seconds)
+    time_seconds: entry.resolve_time,
+    platform: entry.platform || 'web',
+    ota_version: entry.ota_version_code || null,
+    game_data: {
+      difficulty: entry.difficulty,
+      clues: entry.clues,
+      mistakes: entry.mistakes || 0,
+      hints_used: entry.hints_used || 0,
+      moves: entry.moves || 0,
+      puzzle_hash: entry.puzzle_hash || null,
+    },
+    client_timestamp: entry.timestamp_utc || new Date().toISOString(),
+  };
 
   if (!navigator.onLine) {
-    _queueScore(entry);
+    _queueScore(payload);
     return;
   }
   try {
-    await _sendScore(entry);
+    await _sendScore(payload);
   } catch (e) {
-    _queueScore(entry);
+    _queueScore(payload);
   }
 }
 
-async function _sendScore(entry) {
+async function _sendScore(payload) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -42,9 +60,10 @@ async function _sendScore(entry) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Player-UUID': getBrowserUUID(),
+        'X-Player-UUID': payload.browser_uuid,
       },
-      body: JSON.stringify(entry),
+      credentials: 'include',  // CRITICAL: Send cookies to worker for UUID
+      body: JSON.stringify(payload),
       signal: controller.signal,
     });
     captureCookieUUID(res);
@@ -59,9 +78,9 @@ async function _sendScore(entry) {
   }
 }
 
-function _queueScore(entry) {
+function _queueScore(payload) {
   const queue = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
-  queue.push(entry);
+  queue.push(payload);
   while (queue.length > MAX_QUEUE) queue.shift();
   localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
 }
