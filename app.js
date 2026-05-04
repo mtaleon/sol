@@ -57,6 +57,18 @@ try {
   }
 } catch (e) { /* offline or missing — use defaults */ }
 
+// OTA update check (Android only, 3 seconds after startup)
+if (_appConfig.features?.ota_updates !== false && location.protocol === 'file:') {
+  try {
+    const { checkForUpdate, applyOtaConfig } = await import('./core/ota.js');
+    applyOtaConfig(_appConfig);
+    setTimeout(checkForUpdate, 3000);
+    console.log('OTA update check scheduled');
+  } catch (e) {
+    console.error('OTA initialization failed:', e);
+  }
+}
+
 // Load OTA version (Android loader writes localStorage, web reads version.json)
 let _otaVersionCode = null;
 const _storedOta = localStorage.getItem('sudoku_ota_version');
