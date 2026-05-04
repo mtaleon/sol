@@ -86,6 +86,26 @@ function _getPlatform() {
 flushQueue();
 window.addEventListener('online', () => flushQueue());
 
+// Check backend health on startup (if score submission enabled)
+if (_appConfig.features?.score_submission !== false) {
+  (async () => {
+    try {
+      const health = await import('./core/health.js');
+      health.applyConfig(_appConfig);
+
+      // Initial health check
+      health.refreshBackendStatus().then(ok => {
+        console.log('Backend health check:', ok ? 'online' : 'offline');
+      });
+
+      // Start periodic health polling (every 10 minutes)
+      health.startHealthPoll();
+    } catch (e) {
+      console.error('Health check initialization failed:', e);
+    }
+  })();
+}
+
 // Difficulty modal helpers
 const difficultyModal = document.getElementById('difficulty-modal');
 function showDifficultyModal() {
