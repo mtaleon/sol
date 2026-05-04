@@ -1,6 +1,6 @@
 #!/bin/bash
-# Build OTA bundle for Android WebView updates.
-# Zips web assets from www/, computes SHA-256 hash, updates version.json.
+# Build OTA bundle for Sudoku Android WebView updates.
+# Zips web assets, computes SHA-256 hash, updates version.json.
 set -e
 
 cd "$(dirname "$0")/.."
@@ -9,40 +9,71 @@ if [ ! -f "version.json" ]; then
   echo "ERROR: version.json not found" >&2; exit 1
 fi
 
-VERSION=$(python3 -c "import json; print(json.load(open('version.json'))['otaVersionCode'])")
+VERSION=$(python3 -c "import json; d=json.load(open('version.json')); print(d.get('otaVersionCode', 1))")
 OUT="ota/bundle-v${VERSION}.zip"
 
 mkdir -p ota
 
-echo "[OTA] Building www/..."
-npm run build
+echo "[OTA] Building Sudoku bundle v${VERSION}..."
 
-DIST="www"
+# Core files needed for Sudoku (source files, not built)
+OTA_FILES="
+  index.html
+  app.js
+  config.json
+  version.json
+  manifest.json
+  favicon.svg
+  sw.js
+  core/constants.js
+  core/Game.js
+  core/events.js
+  core/api.js
+  core/uuid.js
+  core/ota.js
+  core/health.js
+  core/i18n.js
+  core/Board.js
+  core/Generator.js
+  core/Solver.js
+  core/Settings.js
+  core/SessionManager.js
+  core/AdMobManager.js
+  platform/Platform.js
+  platform/AdMobPlatform.js
+  platforms/web-dom/Renderer.js
+  platforms/web-dom/Input.js
+  platforms/web-dom/Storage.js
+  platforms/web-dom/styles.css
+"
 
-for f in index.html app.js; do
-  if [ ! -f "$DIST/$f" ]; then
-    echo "ERROR: $DIST/$f missing — build may have failed" >&2; exit 1
+# Verify critical files exist
+for f in index.html app.js config.json; do
+  if [ ! -f "$f" ]; then
+    echo "ERROR: $f missing" >&2; exit 1
   fi
 done
 
-# Collect all files in www/ (recursively, relative paths)
+# Generate ota_manifest.json with per-file SHA-256 hashes
 echo "[OTA] Generating ota_manifest.json..."
-MANIFEST="$DIST/ota_manifest.json"
-echo '{"files":{' > "$MANIFEST"
+echo '{"files":{' > ota_manifest.json
 FIRST=1
-find "$DIST" -type f -not -name 'ota_manifest.json' | sort | while read -r filepath; do
-  relpath="${filepath#$DIST/}"
-  FHASH=$(shasum -a 256 "$filepath" | cut -d' ' -f1)
-  if [ $FIRST -eq 1 ]; then FIRST=0; else printf ',' >> "$MANIFEST"; fi
-  printf '"%s":"sha256:%s"' "$relpath" "$FHASH" >> "$MANIFEST"
+for f in $OTA_FILES; do
+    if [ ! -f "$f" ]; then
+        echo "WARNING: $f not found, skipping" >&2
+        continue
+    fi
+    FHASH=$(shasum -a 256 "$f" | cut -d' ' -f1)
+    if [ $FIRST -eq 1 ]; then FIRST=0; else echo ',' >> ota_manifest.json; fi
+    printf '"%s":"sha256:%s"' "$f" "$FHASH" >> ota_manifest.json
 done
-echo '}}' >> "$MANIFEST"
+echo '}}' >> ota_manifest.json
 
-# Create bundle (manifest included since it's in DIST)
-echo "[OTA] Packaging bundle v${VERSION}..."
-rm -f "$OUT"
-(cd "$DIST" && zip -r "../$OUT" .)
-rm -f "$MANIFEST"
+# Create bundle (preserve directory structure)
+echo "[OTA] Packaging bundle..."
+zip -r "$OUT" $OTA_FILES ota_manifest.json
+
+rm -f ota_manifest.json
 
 HASH=$(shasum -a 256 "$OUT" | cut -d' ' -f1)
 SIZE=$(wc -c < "$OUT" | tr -d ' ')
@@ -62,3 +93,4 @@ with open('version.json', 'w') as f:
 echo "[OTA] Bundle: $OUT ($SIZE bytes)"
 echo "[OTA] SHA-256: $HASH"
 echo "[OTA] version.json updated"
+echo "[OTA] Done! Commit version.json and upload $OUT to hosting."
