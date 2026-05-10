@@ -62,7 +62,7 @@ async function _sendScore(payload) {
         'Content-Type': 'application/json',
         'X-Player-UUID': payload.browser_uuid,
       },
-      credentials: 'include',  // CRITICAL: Send cookies to worker for UUID
+      // credentials: 'include',  // Removed: CORS wildcard origin incompatible with credentials
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
