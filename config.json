@@ -8,5 +8,6 @@
   "workerUrl": "https://api.octile.eu.cc",
   "siteUrl": "https://sol.octile.eu.cc/",
   "scoreQueueRetryMs": 35000,
-  "debug": false
+  "debug": false,
+  "supportEmail": "octileapp+sol@googlegroups.com"
 }
