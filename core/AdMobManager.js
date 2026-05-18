@@ -32,9 +32,16 @@ const PROD_IDS = {
   interstitial: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX' // Replace with real ID
 };
 
-const isDev = window.location.hostname === 'localhost' ||
-              window.location.hostname.includes('127.0.0.1');
-const AD_UNITS = isDev ? TEST_IDS : PROD_IDS;
+// Detect environment: Capacitor apps use capacitor:// protocol in production
+// Use TEST_IDS only for local web development
+const isCapacitor = window.Capacitor?.isNativePlatform() || false;
+const isWebDev = window.location.hostname === 'localhost' ||
+                 window.location.hostname.includes('127.0.0.1');
+
+// For now, use TEST_IDS in all environments until production IDs are configured
+// TODO: Replace PROD_IDS with real AdMob IDs before Play Store release
+const useTestAds = true; // Set to false when PROD_IDS are configured
+const AD_UNITS = useTestAds ? TEST_IDS : PROD_IDS;
 
 export class AdMobManager {
   constructor(eventBus, storage) {

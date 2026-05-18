@@ -1,0 +1,2 @@
+alias deploy="docker exec -ti -w /ci/tmp/aaaa/sol.git dind2 git push origin main:main"
+alias deploy_tag="docker exec -ti -w /ci/tmp/aaaa/sol.git dind2 git push --tags"
